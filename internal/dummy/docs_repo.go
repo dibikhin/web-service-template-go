@@ -12,21 +12,23 @@ import (
 )
 
 type UsersDocsRepo interface {
-	Insert(name string) (domain.UserID, error)
+	Insert(ctx context.Context, name string) (domain.UserID, error)
 }
 
-func NewUsersDocsRepo(c *mongo.Collection) UsersDocsRepo {
+func NewUsersDocsRepo(c *mongo.Collection, t time.Duration) UsersDocsRepo {
 	return usersDocRepo{
-		col: c,
+		col:     c,
+		timeout: t,
 	}
 }
 
 type usersDocRepo struct {
-	col *mongo.Collection
+	col     *mongo.Collection
+	timeout time.Duration
 }
 
-func (r usersDocRepo) Insert(name string) (domain.UserID, error) {
-	ctx, cancel := context.WithTimeout(context.TODO(), 5*time.Second)
+func (r usersDocRepo) Insert(ctx context.Context, name string) (domain.UserID, error) {
+	ctx, cancel := context.WithTimeout(ctx, r.timeout)
 	defer cancel()
 
 	res, err := r.col.InsertOne(ctx, bson.D{

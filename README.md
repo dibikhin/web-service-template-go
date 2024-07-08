@@ -3,11 +3,12 @@ Web Service Template in Go
 
 curl -v localhost:8080/createUser \
     -d '{"name":"juwis"}' \
-    -H "Content-Type: application/json" 
+    -H "Content-Type: application/json" \
+    -H "X-Request-ID: d3s32a1a1a" 
 
 Done:
-+ docker-compose.yml
-+ docker-infra.yml
++ docker-compose.yaml
++ docker-infra.yaml
 + Dockerfile
 + Taskfile
 + Graceful shutdown

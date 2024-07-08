@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	kitprometheus "github.com/go-kit/kit/metrics/prometheus"
 	"github.com/go-kit/kit/transport"
@@ -74,7 +73,7 @@ func Run() {
 			logger.Log("msg", "connecting to postgres", "err", err)
 			return
 		}
-		ctxPG, cancelPG := context.WithTimeout(context.Background(), 5*time.Second)
+		ctxPG, cancelPG := context.WithTimeout(context.Background(), cfg.Postgres.Timeout)
 		defer cancelPG()
 
 		if err := pgPool.Ping(ctxPG); err != nil {
@@ -120,17 +119,20 @@ func Run() {
 			logger.Log("msg", "connecting to mongodb", "err", err)
 			return
 		}
-		if err := mongoClient.Ping(context.TODO(), nil); err != nil {
+		ctxM1, cancelM1 := context.WithTimeout(context.Background(), cfg.Mongo.Timeout)
+		defer cancelM1()
+
+		if err := mongoClient.Ping(ctxM1, nil); err != nil {
 			logger.Log("msg", "pinging mongodb", "err", err)
 			return
 		}
 		logger.Log("msg", "mongodb connected")
 
 		defer func() {
-			ctxM1, cancelM1 := context.WithTimeout(context.TODO(), cfg.Mongo.Timeout)
-			defer cancelM1()
+			ctxM2, cancelM2 := context.WithTimeout(context.Background(), cfg.Mongo.Timeout)
+			defer cancelM2()
 
-			if err := mongoClient.Disconnect(ctxM1); err != nil {
+			if err := mongoClient.Disconnect(ctxM2); err != nil {
 				logger.Log("msg", "disconnecting from mongodb", "err", err)
 				return
 			}
@@ -140,7 +142,7 @@ func Run() {
 		dummyCollection := mongoClient.Database(cfg.Mongo.Database).Collection("users")
 
 		// Repos
-		docsRepo := dummy.NewUsersDocsRepo(dummyCollection)
+		docsRepo := dummy.NewUsersDocsRepo(dummyCollection, cfg.Mongo.Timeout)
 		kvRepo := dummy.NewUsersKVRepo(redisClient, dummy.NewIDGetter())
 		sqlRepo := dummy.NewUsersSQLRepo(pgPool)
 
@@ -158,9 +160,10 @@ func Run() {
 		dummymw.RecoveryMiddleware(logger)(
 			dummymw.MakeCreateUserEndpoint(svc),
 		),
-		dummymw.MakeLoggingMiddleware(logger, cfg.Mode)(
-			dummymw.DecodeCreateUserRequest,
-		),
+		dummymw.RequestIDMiddleware()(
+			dummymw.MakeLoggingMiddleware(logger, cfg.Mode)(
+				dummymw.DecodeCreateUserRequest,
+			)),
 		httptransport.EncodeJSONResponse,
 		logErrHandler,
 	)
@@ -190,7 +193,7 @@ func Run() {
 	s := <-sigs
 	logger.Log("msg", "got signal", "signal", s)
 
-	ctx, cancel := context.WithTimeout(context.TODO(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
 	defer cancel()
 	if err := server.Shutdown(ctx); err != nil {
 		logger.Log("msg", "server shutting down", "err", err)

@@ -86,7 +86,7 @@ func Test_usersKVRepo_Set(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := r.Set(tt.args.name)
+			got, err := r.Set(context.Background(), tt.args.name)
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("usersKVRepo.Set() error = %v, wantErr %v", err, tt.wantErr)

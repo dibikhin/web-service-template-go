@@ -9,10 +9,10 @@ tasks:
       - go install github.com/vektra/mockery/v2@v2.43.2
   up:
     cmds:
-      - docker compose -f docker-compose.yml up -d
+      - docker compose -f ./deploy/docker-compose.yaml up -d
   down:
     cmds:
-      - docker compose -f docker-compose.yml down
+      - docker compose -f ./deploy/docker-compose.yaml down
   build:
     cmds:
       - CGO_ENABLED=0 go build -o $FILENAME cmd/main.go
@@ -41,6 +41,9 @@ tasks:
       - rm -rf ./internal/mocks
       - mockery
       - rm -rf ./internal/mocks/*_middleware.go
+  img:
+    cmds:
+      - docker build --tag $FILENAME --file ./deploy/Dockerfile .
   ci:
    cmds:
      - task: tidy
@@ -51,4 +54,5 @@ tasks:
      - task: lint
      - cmd: git add -A
      - task: build
+    #  - task: img # docker img
      - cmd: rm $FILENAME

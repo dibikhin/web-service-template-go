@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/doug-martin/goqu/v9"
+	// Needed to choose dialect
 	_ "github.com/doug-martin/goqu/v9/dialect/postgres"
 	"github.com/jackc/pgx/v5/pgxpool"
 
@@ -14,7 +15,7 @@ import (
 var db = goqu.Dialect("postgres")
 
 type UsersSQLRepo interface {
-	Insert(string) (domain.UserID, error)
+	Insert(ctx context.Context, name string) (domain.UserID, error)
 }
 
 func NewUsersSQLRepo(p *pgxpool.Pool) UsersSQLRepo {
@@ -34,7 +35,7 @@ type sqlRepo struct {
 // 	CONSTRAINT users_pk PRIMARY KEY (user_id)
 // );
 
-func (r sqlRepo) Insert(name string) (domain.UserID, error) {
+func (r sqlRepo) Insert(ctx context.Context, name string) (domain.UserID, error) {
 	q1 := db.Insert("users").
 		Cols("name", "created_at").
 		Vals(goqu.Vals{name, goqu.L("NOW()")})
@@ -43,7 +44,7 @@ func (r sqlRepo) Insert(name string) (domain.UserID, error) {
 	if err != nil {
 		return "", fmt.Errorf("creating query: %w", err)
 	}
-	_, err = r.pool.Exec(context.TODO(), sql1, params...)
+	_, err = r.pool.Exec(ctx, sql1, params...)
 	if err != nil {
 		return "", fmt.Errorf("executing query: %w", err)
 	}
@@ -55,7 +56,7 @@ func (r sqlRepo) Insert(name string) (domain.UserID, error) {
 		return "", fmt.Errorf("creating query: %w", err)
 	}
 	var res string
-	if err := r.pool.QueryRow(context.TODO(), sql2).Scan(&res); err != nil {
+	if err := r.pool.QueryRow(ctx, sql2).Scan(&res); err != nil {
 		return "", fmt.Errorf("executing query: %w", err)
 	}
 	return domain.UserID(res), nil

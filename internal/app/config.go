@@ -9,8 +9,9 @@ import (
 )
 
 type Config struct {
-	Port string `env:"PORT" envDefault:":8080"`
-	Mode string `env:"MODE" envDefault:"debug"`
+	Port            string        `env:"PORT" envDefault:":8080"`
+	Mode            string        `env:"MODE" envDefault:"debug"`
+	ShutdownTimeout time.Duration `env:"SHUTDOWN_TIMEOUT" envDefault:"5s"`
 
 	Postgres PostgresConfig
 	Redis    RedisConfig

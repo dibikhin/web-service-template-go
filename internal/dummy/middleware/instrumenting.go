@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"time"
 
 	"github.com/go-kit/kit/metrics"
@@ -24,12 +25,12 @@ type instrmw struct {
 	dummy.UserService
 }
 
-func (mw instrmw) Create(s string) (domain.UserID, error) {
+func (mw instrmw) CreateUser(ctx context.Context, name string) (domain.UserID, error) {
 	defer func(begin time.Time) {
-		lvs := []string{"method", "Create", "error", "false"}
+		lvs := []string{"method", "CreateUser", "error", "false"}
 		mw.requestCount.With(lvs...).Add(1)
 		mw.requestLatency.With(lvs...).Observe(time.Since(begin).Seconds())
 	}(time.Now())
 
-	return mw.UserService.Create(s)
+	return mw.UserService.CreateUser(ctx, name)
 }

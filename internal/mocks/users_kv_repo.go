@@ -3,6 +3,7 @@
 package mocks
 
 import (
+	context "context"
 	domain "ws-dummy-go/internal/dummy/domain"
 
 	mock "github.com/stretchr/testify/mock"
@@ -21,9 +22,9 @@ func (_m *UsersKVRepo) EXPECT() *UsersKVRepo_Expecter {
 	return &UsersKVRepo_Expecter{mock: &_m.Mock}
 }
 
-// Set provides a mock function with given fields: name
-func (_m *UsersKVRepo) Set(name string) (domain.UserID, error) {
-	ret := _m.Called(name)
+// Set provides a mock function with given fields: ctx, name
+func (_m *UsersKVRepo) Set(ctx context.Context, name string) (domain.UserID, error) {
+	ret := _m.Called(ctx, name)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Set")
@@ -31,17 +32,17 @@ func (_m *UsersKVRepo) Set(name string) (domain.UserID, error) {
 
 	var r0 domain.UserID
 	var r1 error
-	if rf, ok := ret.Get(0).(func(string) (domain.UserID, error)); ok {
-		return rf(name)
+	if rf, ok := ret.Get(0).(func(context.Context, string) (domain.UserID, error)); ok {
+		return rf(ctx, name)
 	}
-	if rf, ok := ret.Get(0).(func(string) domain.UserID); ok {
-		r0 = rf(name)
+	if rf, ok := ret.Get(0).(func(context.Context, string) domain.UserID); ok {
+		r0 = rf(ctx, name)
 	} else {
 		r0 = ret.Get(0).(domain.UserID)
 	}
 
-	if rf, ok := ret.Get(1).(func(string) error); ok {
-		r1 = rf(name)
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, name)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -55,14 +56,15 @@ type UsersKVRepo_Set_Call struct {
 }
 
 // Set is a helper method to define mock.On call
+//   - ctx context.Context
 //   - name string
-func (_e *UsersKVRepo_Expecter) Set(name interface{}) *UsersKVRepo_Set_Call {
-	return &UsersKVRepo_Set_Call{Call: _e.mock.On("Set", name)}
+func (_e *UsersKVRepo_Expecter) Set(ctx interface{}, name interface{}) *UsersKVRepo_Set_Call {
+	return &UsersKVRepo_Set_Call{Call: _e.mock.On("Set", ctx, name)}
 }
 
-func (_c *UsersKVRepo_Set_Call) Run(run func(name string)) *UsersKVRepo_Set_Call {
+func (_c *UsersKVRepo_Set_Call) Run(run func(ctx context.Context, name string)) *UsersKVRepo_Set_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
+		run(args[0].(context.Context), args[1].(string))
 	})
 	return _c
 }
@@ -72,7 +74,7 @@ func (_c *UsersKVRepo_Set_Call) Return(_a0 domain.UserID, _a1 error) *UsersKVRep
 	return _c
 }
 
-func (_c *UsersKVRepo_Set_Call) RunAndReturn(run func(string) (domain.UserID, error)) *UsersKVRepo_Set_Call {
+func (_c *UsersKVRepo_Set_Call) RunAndReturn(run func(context.Context, string) (domain.UserID, error)) *UsersKVRepo_Set_Call {
 	_c.Call.Return(run)
 	return _c
 }

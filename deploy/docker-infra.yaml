@@ -57,8 +57,13 @@ services:
       - "5432:5432"
     environment:
       - POSTGRESQL_PASSWORD=mydummypassword
+    volumes:
+      - pgdata:/var/lib/postgresql/data
     networks:
      - local
+
+volumes:
+  pgdata:
 
 networks:
   local:

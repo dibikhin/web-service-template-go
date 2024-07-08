@@ -1,6 +1,7 @@
 package dummy
 
 import (
+	"context"
 	"fmt"
 
 	"ws-dummy-go/internal/dummy/domain"
@@ -8,7 +9,7 @@ import (
 
 // UserService provides operations on dummys.
 type UserService interface {
-	Create(string) (domain.UserID, error)
+	CreateUser(ctx context.Context, name string) (domain.UserID, error)
 }
 
 func NewUserService(kv UsersKVRepo, sql UsersSQLRepo, docs UsersDocsRepo) UserService {
@@ -21,16 +22,16 @@ type userService struct {
 	docsRepo UsersDocsRepo
 }
 
-func (s userService) Create(name string) (domain.UserID, error) {
-	id1, err := s.sqlRepo.Insert(name)
+func (s userService) CreateUser(ctx context.Context, name string) (domain.UserID, error) {
+	id1, err := s.sqlRepo.Insert(ctx, name)
 	if err != nil {
 		return "", fmt.Errorf("creating user in sql repo: %w", err)
 	}
-	id2, err := s.kvRepo.Set(name)
+	id2, err := s.kvRepo.Set(ctx, name)
 	if err != nil {
 		return "", fmt.Errorf("creating user in kv repo: %w", err)
 	}
-	id3, err := s.docsRepo.Insert(name)
+	id3, err := s.docsRepo.Insert(ctx, name)
 	if err != nil {
 		return "", fmt.Errorf("creating user in docs repo: %w", err)
 	}

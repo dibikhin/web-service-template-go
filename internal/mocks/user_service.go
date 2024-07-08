@@ -3,6 +3,7 @@
 package mocks
 
 import (
+	context "context"
 	domain "ws-dummy-go/internal/dummy/domain"
 
 	mock "github.com/stretchr/testify/mock"
@@ -21,27 +22,27 @@ func (_m *UserService) EXPECT() *UserService_Expecter {
 	return &UserService_Expecter{mock: &_m.Mock}
 }
 
-// Create provides a mock function with given fields: _a0
-func (_m *UserService) Create(_a0 string) (domain.UserID, error) {
-	ret := _m.Called(_a0)
+// CreateUser provides a mock function with given fields: ctx, name
+func (_m *UserService) CreateUser(ctx context.Context, name string) (domain.UserID, error) {
+	ret := _m.Called(ctx, name)
 
 	if len(ret) == 0 {
-		panic("no return value specified for Create")
+		panic("no return value specified for CreateUser")
 	}
 
 	var r0 domain.UserID
 	var r1 error
-	if rf, ok := ret.Get(0).(func(string) (domain.UserID, error)); ok {
-		return rf(_a0)
+	if rf, ok := ret.Get(0).(func(context.Context, string) (domain.UserID, error)); ok {
+		return rf(ctx, name)
 	}
-	if rf, ok := ret.Get(0).(func(string) domain.UserID); ok {
-		r0 = rf(_a0)
+	if rf, ok := ret.Get(0).(func(context.Context, string) domain.UserID); ok {
+		r0 = rf(ctx, name)
 	} else {
 		r0 = ret.Get(0).(domain.UserID)
 	}
 
-	if rf, ok := ret.Get(1).(func(string) error); ok {
-		r1 = rf(_a0)
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, name)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -49,30 +50,31 @@ func (_m *UserService) Create(_a0 string) (domain.UserID, error) {
 	return r0, r1
 }
 
-// UserService_Create_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Create'
-type UserService_Create_Call struct {
+// UserService_CreateUser_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateUser'
+type UserService_CreateUser_Call struct {
 	*mock.Call
 }
 
-// Create is a helper method to define mock.On call
-//   - _a0 string
-func (_e *UserService_Expecter) Create(_a0 interface{}) *UserService_Create_Call {
-	return &UserService_Create_Call{Call: _e.mock.On("Create", _a0)}
+// CreateUser is a helper method to define mock.On call
+//   - ctx context.Context
+//   - name string
+func (_e *UserService_Expecter) CreateUser(ctx interface{}, name interface{}) *UserService_CreateUser_Call {
+	return &UserService_CreateUser_Call{Call: _e.mock.On("CreateUser", ctx, name)}
 }
 
-func (_c *UserService_Create_Call) Run(run func(_a0 string)) *UserService_Create_Call {
+func (_c *UserService_CreateUser_Call) Run(run func(ctx context.Context, name string)) *UserService_CreateUser_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
+		run(args[0].(context.Context), args[1].(string))
 	})
 	return _c
 }
 
-func (_c *UserService_Create_Call) Return(_a0 domain.UserID, _a1 error) *UserService_Create_Call {
+func (_c *UserService_CreateUser_Call) Return(_a0 domain.UserID, _a1 error) *UserService_CreateUser_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *UserService_Create_Call) RunAndReturn(run func(string) (domain.UserID, error)) *UserService_Create_Call {
+func (_c *UserService_CreateUser_Call) RunAndReturn(run func(context.Context, string) (domain.UserID, error)) *UserService_CreateUser_Call {
 	_c.Call.Return(run)
 	return _c
 }

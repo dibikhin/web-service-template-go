@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"time"
 
 	"github.com/go-kit/log"
@@ -20,17 +21,17 @@ type logmw struct {
 	dummy.UserService
 }
 
-func (mw logmw) Create(s string) (output domain.UserID, err error) {
+func (mw logmw) CreateUser(ctx context.Context, name string) (output domain.UserID, err error) {
 	defer func(begin time.Time) {
 		_ = mw.logger.Log(
-			"method", "Create",
-			"input", s,
+			"method", "CreateUser",
+			"input", name,
 			"output", output,
 			"err", err,
 			"took", time.Since(begin),
 		)
 	}(time.Now())
 
-	output, err = mw.UserService.Create(s)
+	output, err = mw.UserService.CreateUser(ctx, name)
 	return
 }

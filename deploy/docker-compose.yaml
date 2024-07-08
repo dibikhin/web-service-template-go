@@ -1,7 +1,7 @@
 name: ws-dummy-go
 
 include:
-  - docker-infra.yml
+  - docker-infra.yaml
 
 services:
   api:

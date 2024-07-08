@@ -10,7 +10,7 @@ import (
 )
 
 type UsersKVRepo interface {
-	Set(name string) (domain.UserID, error)
+	Set(ctx context.Context, name string) (domain.UserID, error)
 }
 
 func NewUsersKVRepo(c *redis.Client, g IDGetter) UsersKVRepo {
@@ -25,13 +25,13 @@ type usersKVRepo struct {
 	idGetter IDGetter
 }
 
-func (r usersKVRepo) Set(name string) (domain.UserID, error) {
+func (r usersKVRepo) Set(ctx context.Context, name string) (domain.UserID, error) {
 	newID := r.idGetter.GetID()
 
-	if err := r.client.Set(context.TODO(), name, newID, 0).Err(); err != nil {
+	if err := r.client.Set(ctx, name, newID, 0).Err(); err != nil {
 		return "", fmt.Errorf("setting key: %w", err)
 	}
-	id, err := r.client.Get(context.TODO(), name).Result()
+	id, err := r.client.Get(ctx, name).Result()
 	if err != nil {
 		return "", fmt.Errorf("getting key: %w", err)
 	}

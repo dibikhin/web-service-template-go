@@ -1,14 +1,17 @@
 package dummy
 
 import (
+	"context"
 	"errors"
 	"testing"
 
 	"ws-dummy-go/internal/dummy/domain"
 	"ws-dummy-go/internal/mocks"
+
+	"github.com/stretchr/testify/mock"
 )
 
-func Test_userService_Create(t *testing.T) {
+func Test_userService_CreateUser(t *testing.T) {
 	kvRepo := &mocks.UsersKVRepo{}
 	sqlRepo := &mocks.UsersSQLRepo{}
 	docsRepo := &mocks.UsersDocsRepo{}
@@ -31,11 +34,11 @@ func Test_userService_Create(t *testing.T) {
 		{
 			name: "Positive: Create user",
 			arrange: func() {
-				sqlRepo.EXPECT().Insert(testname).Return(domain.UserID("1"), nil).
+				sqlRepo.EXPECT().Insert(mock.Anything, testname).Return(domain.UserID("1"), nil).
 					Once()
-				kvRepo.EXPECT().Set(testname).Return(domain.UserID("2"), nil).
+				kvRepo.EXPECT().Set(mock.Anything, testname).Return(domain.UserID("2"), nil).
 					Once()
-				docsRepo.EXPECT().Insert(testname).Return(domain.UserID("3"), nil).
+				docsRepo.EXPECT().Insert(mock.Anything, testname).Return(domain.UserID("3"), nil).
 					Once()
 			},
 			args: args{
@@ -47,7 +50,7 @@ func Test_userService_Create(t *testing.T) {
 		{
 			name: "Negative: Creating in sql repo fails",
 			arrange: func() {
-				sqlRepo.EXPECT().Insert(testname).Return("", mockError).
+				sqlRepo.EXPECT().Insert(mock.Anything, testname).Return("", mockError).
 					Once()
 			},
 			args: args{
@@ -59,9 +62,9 @@ func Test_userService_Create(t *testing.T) {
 		{
 			name: "Negative: Creating in kv repo fails",
 			arrange: func() {
-				sqlRepo.EXPECT().Insert(testname).Return(domain.UserID("1"), nil).
+				sqlRepo.EXPECT().Insert(mock.Anything, testname).Return(domain.UserID("1"), nil).
 					Once()
-				kvRepo.EXPECT().Set(testname).Return("", mockError).
+				kvRepo.EXPECT().Set(mock.Anything, testname).Return("", mockError).
 					Once()
 			},
 			args: args{
@@ -73,11 +76,11 @@ func Test_userService_Create(t *testing.T) {
 		{
 			name: "Negative: Creating in docs repo fails",
 			arrange: func() {
-				sqlRepo.EXPECT().Insert(testname).Return(domain.UserID("1"), nil).
+				sqlRepo.EXPECT().Insert(mock.Anything, testname).Return(domain.UserID("1"), nil).
 					Once()
-				kvRepo.EXPECT().Set(testname).Return(domain.UserID("2"), nil).
+				kvRepo.EXPECT().Set(mock.Anything, testname).Return(domain.UserID("2"), nil).
 					Once()
-				docsRepo.EXPECT().Insert(testname).Return("", mockError).
+				docsRepo.EXPECT().Insert(mock.Anything, testname).Return("", mockError).
 					Once()
 			},
 			args: args{
@@ -93,14 +96,14 @@ func Test_userService_Create(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 
 			tt.arrange()
-			got, err := s.Create(tt.args.name)
+			got, err := s.CreateUser(context.Background(), tt.args.name)
 
 			if (err != nil) != tt.wantErr {
-				t.Errorf("userService.Create() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("userService.CreateUser() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if got != tt.want {
-				t.Errorf("userService.Create() = %v, want %v", got, tt.want)
+				t.Errorf("userService.CreateUser() = %v, want %v", got, tt.want)
 			}
 			kvRepo.AssertExpectations(t)
 			sqlRepo.AssertExpectations(t)

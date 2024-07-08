@@ -11,6 +11,7 @@ import (
 	"github.com/go-kit/kit/endpoint"
 	httptransport "github.com/go-kit/kit/transport/http"
 	"github.com/go-kit/log"
+	"github.com/rs/xid"
 
 	"ws-dummy-go/internal/dummy"
 )
@@ -36,7 +37,7 @@ func MakeCreateUserEndpoint(svc dummy.UserService) endpoint.Endpoint {
 		if !ok {
 			return createUserResponse{"", "invalid request"}, nil
 		}
-		id, err := svc.Create(req.Name)
+		id, err := svc.CreateUser(ctx, req.Name)
 		if err != nil {
 			return createUserResponse{"", err.Error()}, nil
 		}
@@ -52,28 +53,45 @@ func DecodeCreateUserRequest(_ context.Context, r *http.Request) (interface{}, e
 	return request, nil
 }
 
-func MakeLoggingMiddleware(logger log.Logger, mode string) DecodingMiddleware {
+type RequestIDType string
+
+const RequestID RequestIDType = "RequestID"
+
+func RequestIDMiddleware() DecodingMiddleware {
 	return func(next httptransport.DecodeRequestFunc) httptransport.DecodeRequestFunc {
 		return func(ctx context.Context, r *http.Request) (interface{}, error) {
-			body := []byte("hidden")
 
-			if mode == "debug" {
-				var err error
-				body, err = httputil.DumpRequest(r, true)
-				if err != nil {
-					return nil, fmt.Errorf("dumping request: %w", err)
-				}
+			reqID := r.Header.Get("X-Request-ID")
+			if reqID == "" {
+				reqID = xid.New().String()
 			}
-			logger.Log(
-				"msg", "got request", "method", r.Method, "URL", r.URL, "len", r.ContentLength, "body", body,
-			)
+			ctx = context.WithValue(ctx, RequestID, reqID)
 			return next(ctx, r)
 		}
 	}
 }
 
-func EncodeResponse(_ context.Context, w http.ResponseWriter, response interface{}) error {
-	return json.NewEncoder(w).Encode(response)
+func MakeLoggingMiddleware(logger log.Logger, mode string) DecodingMiddleware {
+	return func(next httptransport.DecodeRequestFunc) httptransport.DecodeRequestFunc {
+		return func(ctx context.Context, req *http.Request) (interface{}, error) {
+			body := []byte("hidden")
+
+			reqID := ctx.Value(RequestID).(string)
+
+			if mode == "debug" {
+				var err error
+				body, err = httputil.DumpRequest(req, true)
+				if err != nil {
+					return nil, fmt.Errorf("dumping request: %w", err)
+				}
+			}
+			logger.Log(
+				"msg", "got request", "method", req.Method, "URL", req.URL, "len", req.ContentLength,
+				"reqID", reqID, "body", body,
+			)
+			return next(ctx, req)
+		}
+	}
 }
 
 type createUserRequest struct {
