@@ -1,0 +1,54 @@
+version: '3'
+
+env:
+  FILENAME: ws-dummy-go.bin
+
+tasks:
+  deps:
+    cmds:
+      - go install github.com/vektra/mockery/v2@v2.43.2
+  up:
+    cmds:
+      - docker compose -f docker-compose.yml up -d
+  down:
+    cmds:
+      - docker compose -f docker-compose.yml down
+  build:
+    cmds:
+      - CGO_ENABLED=0 go build -o $FILENAME cmd/main.go
+  run:
+    cmds:
+      - go run cmd/main.go -config=./configs/dev.env
+  tidy:
+   cmds:
+     - go mod tidy
+     - go mod vendor
+  fmt:
+    cmds:
+      - go fmt ./...
+  test:
+    cmds:
+      - go test ./... -v -race -timeout 30s
+  dead:
+    cmds:
+     - deadcode ./...
+     - staticcheck -checks U1000 ./...
+  lint:
+    cmds:
+      - golangci-lint run
+  mocks:
+    cmds:
+      - rm -rf ./internal/mocks
+      - mockery
+      - rm -rf ./internal/mocks/*_middleware.go
+  ci:
+   cmds:
+     - task: tidy
+     - task: mocks
+     - task: fmt
+    #  - task: dead
+     - task: test
+     - task: lint
+     - cmd: git add -A
+     - task: build
+     - cmd: rm $FILENAME

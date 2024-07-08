@@ -1,0 +1,19 @@
+linters:
+  enable:
+    - errcheck
+    - govet
+
+linters-settings:
+  govet:
+    enable-all: true
+    disable:
+      - fieldalignment
+      - composites
+      - shadow
+  errcheck:
+    exclude-functions:
+      - (github.com/go-kit/log.Logger).Log
+
+issues:
+  exclude-dirs:
+    - ./vendor

@@ -1,0 +1,25 @@
+name: ws-dummy-go
+
+include:
+  - docker-infra.yml
+
+services:
+  api:
+    container_name: dummy-api
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      - minio
+      - redis
+      - mongo
+      - kafka
+      - postgres
+    networks:
+      - local
+
+networks:
+  local:
+    driver: bridge
