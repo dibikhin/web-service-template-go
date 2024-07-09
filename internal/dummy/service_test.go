@@ -8,6 +8,7 @@ import (
 	"ws-dummy-go/internal/dummy/domain"
 	"ws-dummy-go/internal/mocks"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -94,17 +95,14 @@ func Test_userService_CreateUser(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			assert := assert.New(t)
 
 			tt.arrange()
 			got, err := s.CreateUser(context.Background(), tt.args.name)
 
-			if (err != nil) != tt.wantErr {
-				t.Errorf("userService.CreateUser() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("userService.CreateUser() = %v, want %v", got, tt.want)
-			}
+			assert.Equal(tt.want, got)
+			assert.Equal(tt.wantErr, err != nil)
+
 			kvRepo.AssertExpectations(t)
 			sqlRepo.AssertExpectations(t)
 			docsRepo.AssertExpectations(t)

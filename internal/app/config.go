@@ -28,9 +28,10 @@ type PostgresConfig struct {
 }
 
 type RedisConfig struct {
-	Host     string `env:"REDIS_HOST"`
-	Port     uint16 `env:"REDIS_PORT"`
-	Password string `env:"REDIS_PASSWORD"`
+	Host     string        `env:"REDIS_HOST"`
+	Port     uint16        `env:"REDIS_PORT"`
+	Password string        `env:"REDIS_PASSWORD"`
+	Timeout  time.Duration `env:"REDIS_TIMEOUT"`
 }
 
 type MongoConfig struct {

@@ -90,9 +90,12 @@ func Run() {
 		// Redis
 		redisAddr := fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port)
 		redisClient := redis.NewClient(&redis.Options{
-			Addr:     redisAddr,
-			Password: cfg.Redis.Password,
-			DB:       0,
+			Addr:         redisAddr,
+			Password:     cfg.Redis.Password,
+			DB:           0,
+			DialTimeout:  cfg.Redis.Timeout,
+			ReadTimeout:  0, // 0 = 3s
+			WriteTimeout: 0, // 0 = 3s
 		})
 		if err := redisClient.Ping(context.Background()).Err(); err != nil {
 			logger.Log("msg", "pinging redis", "err", err)

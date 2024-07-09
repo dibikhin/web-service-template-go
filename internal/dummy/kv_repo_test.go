@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"reflect"
 	"testing"
 
 	"github.com/ory/dockertest/v3"
 	"github.com/redis/go-redis/v9"
+	"github.com/stretchr/testify/assert"
 
 	"ws-dummy-go/internal/dummy/domain"
 	"ws-dummy-go/internal/mocks"
@@ -71,8 +71,10 @@ func Test_usersKVRepo_Set(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Positive: Set user",
-			want: domain.UserID("0987654321"),
+			name:    "Positive: Set user",
+			args:    args{name: "testname123"},
+			want:    domain.UserID("0987654321"),
+			wantErr: false,
 		},
 	}
 
@@ -86,15 +88,13 @@ func Test_usersKVRepo_Set(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			assert := assert.New(t)
+
 			got, err := r.Set(context.Background(), tt.args.name)
 
-			if (err != nil) != tt.wantErr {
-				t.Errorf("usersKVRepo.Set() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("usersKVRepo.Set() = %v, want %v", got, tt.want)
-			}
+			assert.Equal(tt.want, got)
+			assert.Equal(tt.wantErr, err != nil)
+
 			idGetterMock.AssertExpectations(t)
 		})
 	}
