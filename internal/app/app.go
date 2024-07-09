@@ -25,6 +25,8 @@ import (
 	dummymw "ws-dummy-go/internal/dummy/middleware"
 )
 
+const AppName = "ws-dummy-go"
+
 func Run() {
 	var (
 		file = flag.String("config", "dev.env", "config file")
@@ -65,22 +67,22 @@ func Run() {
 	{
 		// Postgres
 		pgConnString := fmt.Sprintf(
-			"postgres://%s:%s@%s:%d/%s",
-			cfg.Postgres.User, cfg.Postgres.Password, cfg.Postgres.Host, cfg.Postgres.Port, cfg.Postgres.Database,
+			"postgres://%s:%s@%s:%d/%s?connect_timeout=%d&pool_max_conns=%d&application_name=%s",
+			cfg.Postgres.User, cfg.Postgres.Password, cfg.Postgres.Host, cfg.Postgres.Port,
+			cfg.Postgres.Database, cfg.Postgres.Timeout, 10, AppName,
 		)
 		pgPool, err := pgxpool.New(context.Background(), pgConnString)
 		if err != nil {
 			logger.Log("msg", "connecting to postgres", "err", err)
 			return
 		}
-		ctxPG, cancelPG := context.WithTimeout(context.Background(), cfg.Postgres.Timeout)
-		defer cancelPG()
-
-		if err := pgPool.Ping(ctxPG); err != nil {
+		if err := pgPool.Ping(context.Background()); err != nil {
 			logger.Log("msg", "pinging postgres", "err", err)
 			return
 		}
 		logger.Log("msg", "postgres pool connected")
+		s := pgPool.Stat()
+		logger.Log("msg", "pool conns", "total", s.TotalConns(), "max", s.MaxConns(), "acquired", s.AcquiredConns())
 
 		defer func() {
 			pgPool.Close()
@@ -112,30 +114,25 @@ func Run() {
 		}()
 
 		// Mongo
-		ctxM, cancelM := context.WithTimeout(context.Background(), cfg.Mongo.Timeout)
-		defer cancelM()
+		mongoConnURI := fmt.Sprintf("mongodb://%s:%d/%s", cfg.Mongo.Host, cfg.Mongo.Port, cfg.Mongo.Database)
 
-		mongoClient, err := mongo.Connect(ctxM, options.Client().ApplyURI(fmt.Sprintf(
-			"mongodb://%s:%d/%s", cfg.Mongo.Host, cfg.Mongo.Port, cfg.Mongo.Database)),
-		)
+		mongoClient, err := mongo.Connect(context.Background(), options.Client().
+			ApplyURI(mongoConnURI).
+			SetConnectTimeout(cfg.Mongo.Timeout).
+			SetServerSelectionTimeout(cfg.Mongo.Timeout).
+			SetTimeout(cfg.Mongo.Timeout))
 		if err != nil {
 			logger.Log("msg", "connecting to mongodb", "err", err)
 			return
 		}
-		ctxM1, cancelM1 := context.WithTimeout(context.Background(), cfg.Mongo.Timeout)
-		defer cancelM1()
-
-		if err := mongoClient.Ping(ctxM1, nil); err != nil {
+		if err := mongoClient.Ping(context.Background(), nil); err != nil {
 			logger.Log("msg", "pinging mongodb", "err", err)
 			return
 		}
 		logger.Log("msg", "mongodb connected")
 
 		defer func() {
-			ctxM2, cancelM2 := context.WithTimeout(context.Background(), cfg.Mongo.Timeout)
-			defer cancelM2()
-
-			if err := mongoClient.Disconnect(ctxM2); err != nil {
+			if err := mongoClient.Disconnect(context.Background()); err != nil {
 				logger.Log("msg", "disconnecting from mongodb", "err", err)
 				return
 			}
@@ -196,7 +193,7 @@ func Run() {
 	s := <-sigs
 	logger.Log("msg", "got signal", "signal", s)
 
-	ctx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), cfg.Timeout)
 	defer cancel()
 	if err := server.Shutdown(ctx); err != nil {
 		logger.Log("msg", "server shutting down", "err", err)

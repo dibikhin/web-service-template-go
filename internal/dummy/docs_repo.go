@@ -28,9 +28,6 @@ type usersDocRepo struct {
 }
 
 func (r usersDocRepo) Insert(ctx context.Context, name string) (domain.UserID, error) {
-	ctx, cancel := context.WithTimeout(ctx, r.timeout)
-	defer cancel()
-
 	res, err := r.col.InsertOne(ctx, bson.D{
 		{Key: "name", Value: name}, {Key: "created_at", Value: time.Now()},
 	})
