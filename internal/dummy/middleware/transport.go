@@ -55,13 +55,13 @@ func DecodeCreateUserRequest(_ context.Context, r *http.Request) (interface{}, e
 
 type RequestIDType string
 
-const RequestID RequestIDType = "RequestID"
+const RequestID RequestIDType = "X-Request-ID"
 
 func RequestIDMiddleware() DecodingMiddleware {
 	return func(next httptransport.DecodeRequestFunc) httptransport.DecodeRequestFunc {
 		return func(ctx context.Context, r *http.Request) (interface{}, error) {
 
-			reqID := r.Header.Get("X-Request-ID")
+			reqID := r.Header.Get(string(RequestID))
 			if reqID == "" {
 				reqID = xid.New().String()
 			}

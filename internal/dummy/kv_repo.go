@@ -4,29 +4,29 @@ import (
 	"context"
 	"fmt"
 
-	"ws-dummy-go/internal/dummy/domain"
-
 	"github.com/redis/go-redis/v9"
+
+	"ws-dummy-go/internal/dummy/domain"
 )
 
 type UsersKVRepo interface {
 	Set(ctx context.Context, name string) (domain.UserID, error)
 }
 
-func NewUsersKVRepo(c *redis.Client, g IDGetter) UsersKVRepo {
+func NewUsersKVRepo(c *redis.Client, g IDGenerator) UsersKVRepo {
 	return usersKVRepo{
-		client:   c,
-		idGetter: g,
+		client:      c,
+		idGenerator: g,
 	}
 }
 
 type usersKVRepo struct {
-	client   *redis.Client
-	idGetter IDGetter
+	client      *redis.Client
+	idGenerator IDGenerator
 }
 
 func (r usersKVRepo) Set(ctx context.Context, name string) (domain.UserID, error) {
-	newID := r.idGetter.GetID()
+	newID := r.idGenerator.NewID()
 
 	if err := r.client.Set(ctx, name, newID, 0).Err(); err != nil {
 		return "", fmt.Errorf("setting key: %w", err)

@@ -15,20 +15,22 @@ type UsersDocsRepo interface {
 	Insert(ctx context.Context, name string) (domain.UserID, error)
 }
 
-func NewUsersDocsRepo(c *mongo.Collection, t time.Duration) UsersDocsRepo {
+func NewUsersDocsRepo(c *mongo.Collection) UsersDocsRepo {
 	return usersDocRepo{
-		col:     c,
-		timeout: t,
+		col: c,
 	}
 }
 
 type usersDocRepo struct {
-	col     *mongo.Collection
-	timeout time.Duration
+	col         *mongo.Collection
+	idGenerator IDGenerator
 }
 
 func (r usersDocRepo) Insert(ctx context.Context, name string) (domain.UserID, error) {
+	newID := r.idGenerator.NewID()
+
 	res, err := r.col.InsertOne(ctx, bson.D{
+		{Key: "_id", Value: newID},
 		{Key: "name", Value: name}, {Key: "created_at", Value: time.Now()},
 	})
 	if err != nil {

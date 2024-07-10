@@ -3,21 +3,23 @@ package dummy
 import (
 	"context"
 	"errors"
+	"fmt"
+	"math/big"
 	"testing"
-
-	"ws-dummy-go/internal/dummy/domain"
-	"ws-dummy-go/internal/mocks"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+
+	"ws-dummy-go/internal/dummy/domain"
+	"ws-dummy-go/internal/mocks"
 )
 
 func Test_userService_CreateUser(t *testing.T) {
-	kvRepo := &mocks.UsersKVRepo{}
-	sqlRepo := &mocks.UsersSQLRepo{}
-	docsRepo := &mocks.UsersDocsRepo{}
+	kvRepoMock := &mocks.UsersKVRepo{}
+	sqlRepoMock := &mocks.UsersSQLRepo{}
+	docsRepoMock := &mocks.UsersDocsRepo{}
 
-	s := NewUserService(kvRepo, sqlRepo, docsRepo)
+	s := NewUserService(kvRepoMock, sqlRepoMock, docsRepoMock)
 
 	testname := "testname123"
 	mockError := errors.New("mock error")
@@ -35,11 +37,11 @@ func Test_userService_CreateUser(t *testing.T) {
 		{
 			name: "Positive: Create user",
 			arrange: func() {
-				sqlRepo.EXPECT().Insert(mock.Anything, testname).Return(domain.UserID("1"), nil).
+				sqlRepoMock.EXPECT().Insert(mock.Anything, testname).Return(domain.UserID("1"), nil).
 					Once()
-				kvRepo.EXPECT().Set(mock.Anything, testname).Return(domain.UserID("2"), nil).
+				kvRepoMock.EXPECT().Set(mock.Anything, testname).Return(domain.UserID("2"), nil).
 					Once()
-				docsRepo.EXPECT().Insert(mock.Anything, testname).Return(domain.UserID("3"), nil).
+				docsRepoMock.EXPECT().Insert(mock.Anything, testname).Return(domain.UserID("3"), nil).
 					Once()
 			},
 			args: args{
@@ -51,7 +53,7 @@ func Test_userService_CreateUser(t *testing.T) {
 		{
 			name: "Negative: Creating in sql repo fails",
 			arrange: func() {
-				sqlRepo.EXPECT().Insert(mock.Anything, testname).Return("", mockError).
+				sqlRepoMock.EXPECT().Insert(mock.Anything, testname).Return("", mockError).
 					Once()
 			},
 			args: args{
@@ -63,9 +65,9 @@ func Test_userService_CreateUser(t *testing.T) {
 		{
 			name: "Negative: Creating in kv repo fails",
 			arrange: func() {
-				sqlRepo.EXPECT().Insert(mock.Anything, testname).Return(domain.UserID("1"), nil).
+				sqlRepoMock.EXPECT().Insert(mock.Anything, testname).Return(domain.UserID("1"), nil).
 					Once()
-				kvRepo.EXPECT().Set(mock.Anything, testname).Return("", mockError).
+				kvRepoMock.EXPECT().Set(mock.Anything, testname).Return("", mockError).
 					Once()
 			},
 			args: args{
@@ -77,11 +79,11 @@ func Test_userService_CreateUser(t *testing.T) {
 		{
 			name: "Negative: Creating in docs repo fails",
 			arrange: func() {
-				sqlRepo.EXPECT().Insert(mock.Anything, testname).Return(domain.UserID("1"), nil).
+				sqlRepoMock.EXPECT().Insert(mock.Anything, testname).Return(domain.UserID("1"), nil).
 					Once()
-				kvRepo.EXPECT().Set(mock.Anything, testname).Return(domain.UserID("2"), nil).
+				kvRepoMock.EXPECT().Set(mock.Anything, testname).Return(domain.UserID("2"), nil).
 					Once()
-				docsRepo.EXPECT().Insert(mock.Anything, testname).Return("", mockError).
+				docsRepoMock.EXPECT().Insert(mock.Anything, testname).Return("", mockError).
 					Once()
 			},
 			args: args{
@@ -91,6 +93,10 @@ func Test_userService_CreateUser(t *testing.T) {
 			wantErr: true,
 		},
 	}
+
+	b := []byte{0x01, 0x00, 0x01}
+	e := big.NewInt(0).SetBytes(b)
+	fmt.Printf("%v", e)
 
 	for _, tt := range tests {
 		tt := tt
@@ -103,9 +109,9 @@ func Test_userService_CreateUser(t *testing.T) {
 			assert.Equal(tt.want, got)
 			assert.Equal(tt.wantErr, err != nil)
 
-			kvRepo.AssertExpectations(t)
-			sqlRepo.AssertExpectations(t)
-			docsRepo.AssertExpectations(t)
+			kvRepoMock.AssertExpectations(t)
+			sqlRepoMock.AssertExpectations(t)
+			docsRepoMock.AssertExpectations(t)
 		})
 	}
 }

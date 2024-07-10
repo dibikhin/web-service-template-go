@@ -5,17 +5,17 @@ import (
 	"math/rand/v2"
 )
 
-type IDGetter interface {
-	GetID() string
+type IDGenerator interface {
+	NewID() string
 }
 
-type idGetter struct {
+type randIDGenerator struct {
 }
 
-func NewIDGetter() IDGetter {
-	return &idGetter{}
+func NewRandIDGenerator() IDGenerator {
+	return &randIDGenerator{}
 }
 
-func (g *idGetter) GetID() string {
+func (g *randIDGenerator) NewID() string {
 	return fmt.Sprintf("%d", rand.Uint64())
 }

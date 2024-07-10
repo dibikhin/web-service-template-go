@@ -6,21 +6,19 @@ import (
 	"os"
 	"testing"
 
+	"github.com/go-kit/log"
 	"github.com/ory/dockertest/v3"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 
 	"ws-dummy-go/internal/dummy/domain"
 	"ws-dummy-go/internal/mocks"
-
-	"github.com/go-kit/log"
 )
 
 var testRedisClient *redis.Client
 
 func TestMain(m *testing.M) {
-	var logger log.Logger
-	logger = log.NewLogfmtLogger(os.Stderr)
+	logger := log.NewLogfmtLogger(os.Stderr)
 	logger = log.With(logger, "ts", log.DefaultTimestampUTC, "caller", log.DefaultCaller)
 
 	pool, err := dockertest.NewPool("")
@@ -78,12 +76,12 @@ func Test_usersKVRepo_Set(t *testing.T) {
 		},
 	}
 
-	idGetterMock := &mocks.IDGetter{}
-	idGetterMock.EXPECT().GetID().Return("0987654321").Times(1)
+	idGeneratorMock := &mocks.IDGenerator{}
+	idGeneratorMock.EXPECT().NewID().Return("0987654321").Times(1)
 
 	r := usersKVRepo{
-		client:   testRedisClient,
-		idGetter: idGetterMock,
+		client:      testRedisClient,
+		idGenerator: idGeneratorMock,
 	}
 
 	for _, tt := range tests {
@@ -95,7 +93,7 @@ func Test_usersKVRepo_Set(t *testing.T) {
 			assert.Equal(tt.want, got)
 			assert.Equal(tt.wantErr, err != nil)
 
-			idGetterMock.AssertExpectations(t)
+			idGeneratorMock.AssertExpectations(t)
 		})
 	}
 }

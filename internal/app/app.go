@@ -82,7 +82,7 @@ func Run() {
 		}
 		logger.Log("msg", "postgres pool connected")
 		s := pgPool.Stat()
-		logger.Log("msg", "pool conns", "total", s.TotalConns(), "max", s.MaxConns(), "acquired", s.AcquiredConns())
+		logger.Log("msg", "pool conns", "total", s.TotalConns(), "max", s.MaxConns())
 
 		defer func() {
 			pgPool.Close()
@@ -107,14 +107,16 @@ func Run() {
 
 		defer func() {
 			if err := redisClient.Close(); err != nil {
-				logger.Log("msg", "closing redis connection", "err", err)
+				logger.Log("msg", "closing redis client", "err", err)
 				return
 			}
 			logger.Log("msg", "redis client closed")
 		}()
 
 		// Mongo
-		mongoConnURI := fmt.Sprintf("mongodb://%s:%d/%s", cfg.Mongo.Host, cfg.Mongo.Port, cfg.Mongo.Database)
+		mongoConnURI := fmt.Sprintf(
+			"mongodb://%s:%d/%s", cfg.Mongo.Host, cfg.Mongo.Port, cfg.Mongo.Database,
+		)
 
 		mongoClient, err := mongo.Connect(context.Background(), options.Client().
 			ApplyURI(mongoConnURI).
@@ -142,8 +144,8 @@ func Run() {
 		dummyCollection := mongoClient.Database(cfg.Mongo.Database).Collection("users")
 
 		// Repos
-		docsRepo := dummy.NewUsersDocsRepo(dummyCollection, cfg.Mongo.Timeout)
-		kvRepo := dummy.NewUsersKVRepo(redisClient, dummy.NewIDGetter())
+		docsRepo := dummy.NewUsersDocsRepo(dummyCollection)
+		kvRepo := dummy.NewUsersKVRepo(redisClient, dummy.NewRandIDGenerator())
 		sqlRepo := dummy.NewUsersSQLRepo(pgPool)
 
 		svc = dummy.NewUserService(kvRepo, sqlRepo, docsRepo)
@@ -154,7 +156,7 @@ func Run() {
 
 	logErrHandler := httptransport.ServerErrorHandler(transport.NewLogErrorHandler(logger))
 
-	// todord propagate request id, return it
+	// todord return request id
 
 	createUserHandler := httptransport.NewServer(
 		dummymw.RecoveryMiddleware(logger)(
