@@ -3,8 +3,6 @@ package dummy
 import (
 	"context"
 	"errors"
-	"fmt"
-	"math/big"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -94,10 +92,6 @@ func Test_userService_CreateUser(t *testing.T) {
 		},
 	}
 
-	b := []byte{0x01, 0x00, 0x01}
-	e := big.NewInt(0).SetBytes(b)
-	fmt.Printf("%v", e)
-
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
@@ -107,7 +101,7 @@ func Test_userService_CreateUser(t *testing.T) {
 			got, err := s.CreateUser(context.Background(), tt.args.name)
 
 			assert.Equal(tt.want, got)
-			assert.Equal(tt.wantErr, err != nil)
+			assert.Equal(tt.wantErr, err != nil, err)
 
 			kvRepoMock.AssertExpectations(t)
 			sqlRepoMock.AssertExpectations(t)

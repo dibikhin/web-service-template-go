@@ -80,9 +80,8 @@ func Run() {
 			logger.Log("msg", "pinging postgres", "err", err)
 			return
 		}
-		logger.Log("msg", "postgres pool connected")
 		s := pgPool.Stat()
-		logger.Log("msg", "pool conns", "total", s.TotalConns(), "max", s.MaxConns())
+		logger.Log("msg", "postgres pool connected", "total", s.TotalConns(), "max", s.MaxConns())
 
 		defer func() {
 			pgPool.Close()
@@ -144,7 +143,7 @@ func Run() {
 		dummyCollection := mongoClient.Database(cfg.Mongo.Database).Collection("users")
 
 		// Repos
-		docsRepo := dummy.NewUsersDocsRepo(dummyCollection)
+		docsRepo := dummy.NewUsersDocsRepo(dummyCollection, dummy.NewRandIDGenerator())
 		kvRepo := dummy.NewUsersKVRepo(redisClient, dummy.NewRandIDGenerator())
 		sqlRepo := dummy.NewUsersSQLRepo(pgPool)
 

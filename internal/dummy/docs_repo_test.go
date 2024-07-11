@@ -4,18 +4,18 @@ import (
 	"context"
 	"testing"
 
-	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
+	"go.mongodb.org/mongo-driver/mongo"
 
 	"ws-dummy-go/internal/dummy/domain"
 	"ws-dummy-go/internal/mocks"
 )
 
 var (
-	testRedisClient *redis.Client
+	testMongoClient *mongo.Client
 )
 
-func Test_usersKVRepo_Set(t *testing.T) {
+func Test_usersDocRepo_Insert(t *testing.T) {
 	type args struct {
 		name string
 	}
@@ -26,18 +26,20 @@ func Test_usersKVRepo_Set(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "Positive: Set user",
-			args:    args{name: "testname123"},
-			want:    domain.UserID("0987654321"),
+			name:    "Positive: Insert user",
+			args:    args{name: "testname567"},
+			want:    domain.UserID("345678987654"),
 			wantErr: false,
 		},
 	}
 
 	idGeneratorMock := &mocks.IDGenerator{}
-	idGeneratorMock.EXPECT().NewID().Return("0987654321").Times(1)
+	idGeneratorMock.EXPECT().NewID().Return("345678987654").Times(1)
 
-	r := usersKVRepo{
-		client:      testRedisClient,
+	col := testMongoClient.Database("test_dummy").Collection("users")
+
+	r := usersDocRepo{
+		col:         col,
 		idGenerator: idGeneratorMock,
 	}
 
@@ -47,7 +49,7 @@ func Test_usersKVRepo_Set(t *testing.T) {
 			// t.Parallel()
 			assert := assert.New(t)
 
-			got, err := r.Set(context.Background(), tt.args.name)
+			got, err := r.Insert(context.Background(), tt.args.name)
 
 			assert.Equal(tt.want, got)
 			assert.Equal(tt.wantErr, err != nil, err)

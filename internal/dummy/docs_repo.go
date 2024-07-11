@@ -15,9 +15,10 @@ type UsersDocsRepo interface {
 	Insert(ctx context.Context, name string) (domain.UserID, error)
 }
 
-func NewUsersDocsRepo(c *mongo.Collection) UsersDocsRepo {
+func NewUsersDocsRepo(c *mongo.Collection, g IDGenerator) UsersDocsRepo {
 	return usersDocRepo{
-		col: c,
+		col:         c,
+		idGenerator: g,
 	}
 }
 
