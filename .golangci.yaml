@@ -16,6 +16,7 @@ linters-settings:
   errcheck:
     exclude-functions:
       - (github.com/go-kit/log.Logger).Log
+      - (*github.com/ory/dockertest/v3.Resource).Expire
 
 issues:
   exclude-dirs:

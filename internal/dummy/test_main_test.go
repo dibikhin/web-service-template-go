@@ -9,9 +9,15 @@ import (
 
 	"github.com/go-kit/log"
 	"github.com/ory/dockertest/v3"
+	"github.com/ory/dockertest/v3/docker"
 	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+)
+
+const (
+	password = "mytestpassword"
+	timeout  = 30 // seconds
 )
 
 func TestMain(m *testing.M) {
@@ -27,18 +33,34 @@ func TestMain(m *testing.M) {
 		logger.Log("msg", "pinging docker", "err", err)
 		return
 	}
-	password := "mytestpassword"
+	pool.MaxWait = timeout * 2 * time.Second
 
-	redisImage, err := pool.Run("bitnami/redis", "7.0", []string{"REDIS_PASSWORD=" + password})
+	redisImage, err := pool.RunWithOptions(&dockertest.RunOptions{
+		Repository: "bitnami/redis",
+		Tag:        "7.0",
+		Env: []string{
+			"ALLOW_EMPTY_PASSWORD=yes",
+		},
+	}, func(config *docker.HostConfig) {
+		config.RestartPolicy = docker.RestartPolicy{Name: "no"}
+	})
 	if err != nil {
 		logger.Log("msg", "starting redis", "err", err)
 		return
 	}
-	mongoImage, err := pool.Run("bitnami/mongodb", "7.0", nil)
+	mongoImage, err := pool.RunWithOptions(&dockertest.RunOptions{
+		Repository: "bitnami/mongodb",
+		Tag:        "7.0",
+	}, func(config *docker.HostConfig) {
+		config.RestartPolicy = docker.RestartPolicy{Name: "no"}
+	})
 	if err != nil {
 		logger.Log("msg", "starting mongodb", "err", err)
 		return
 	}
+
+	redisImage.Expire(timeout)
+	mongoImage.Expire(timeout)
 
 	if err := pool.Retry(func() error {
 		testRedisClient = redis.NewClient(&redis.Options{
@@ -51,11 +73,14 @@ func TestMain(m *testing.M) {
 		logger.Log("msg", "connecting to redis", "err", err)
 	}
 	if err := pool.Retry(func() error {
+		uri := fmt.Sprintf("mongodb://localhost:%s", mongoImage.GetPort("27017/tcp"))
+
 		testMongoClient, err = mongo.Connect(context.Background(), options.Client().
-			ApplyURI(fmt.Sprintf("mongodb://localhost:%s", mongoImage.GetPort("27017/tcp"))).
+			ApplyURI(uri).
 			SetConnectTimeout(1*time.Second).
 			SetServerSelectionTimeout(1*time.Second).
 			SetTimeout(1*time.Second))
+
 		if err != nil {
 			return err
 		}

@@ -113,12 +113,12 @@ func Run() {
 		}()
 
 		// Mongo
-		mongoConnURI := fmt.Sprintf(
-			"mongodb://%s:%d/%s", cfg.Mongo.Host, cfg.Mongo.Port, cfg.Mongo.Database,
+		mongoURI := fmt.Sprintf("mongodb://%s:%s@%s:%d/?ssl=false&authSource=admin",
+			cfg.Mongo.Username, cfg.Mongo.Password, cfg.Mongo.Host, cfg.Mongo.Port,
 		)
 
 		mongoClient, err := mongo.Connect(context.Background(), options.Client().
-			ApplyURI(mongoConnURI).
+			ApplyURI(mongoURI).
 			SetConnectTimeout(cfg.Mongo.Timeout).
 			SetServerSelectionTimeout(cfg.Mongo.Timeout).
 			SetTimeout(cfg.Mongo.Timeout))

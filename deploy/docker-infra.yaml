@@ -33,6 +33,9 @@ services:
     image: "bitnami/mongodb:7.0"
     ports:
       - "27017:27017"
+    environment:
+      - MONGODB_ROOT_USER=mydummyuser
+      - MONGODB_ROOT_PASSWORD=mydummypassword
     volumes:
       - mongo_data:/mongo/data
     networks:
@@ -61,14 +64,15 @@ services:
     ports:
       - "5432:5432"
     environment:
+      - POSTGRESQL_USERNAME=mydummyuser
       - POSTGRESQL_PASSWORD=mydummypassword
     volumes:
-      - pg_data:/postgres/data
+      - postgres_data:/postgres/data
     networks:
      - local
 
 volumes:
-  pg_data:
+  postgres_data:
   mongo_data:
   redis_data:
 

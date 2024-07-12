@@ -37,6 +37,8 @@ type RedisConfig struct {
 type MongoConfig struct {
 	Host     string        `env:"MONGO_HOST"`
 	Port     uint16        `env:"MONGO_PORT"`
+	Username string        `env:"MONGO_USERNAME"`
+	Password string        `env:"MONGO_PASSWORD,unset"`
 	Database string        `env:"MONGO_DATABASE"`
 	Timeout  time.Duration `env:"MONGO_TIMEOUT"`
 }
