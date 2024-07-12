@@ -12,6 +12,10 @@ import (
 	"ws-dummy-go/internal/dummy/domain"
 )
 
+var (
+	testPostgresPool *pgxpool.Pool
+)
+
 var db = goqu.Dialect("postgres")
 
 type UsersSQLRepo interface {
