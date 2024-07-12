@@ -1,8 +1,8 @@
 package dummy
 
 import (
-	"fmt"
 	"math/rand/v2"
+	"strconv"
 )
 
 type IDGenerator interface {
@@ -17,5 +17,5 @@ func NewRandIDGenerator() IDGenerator {
 }
 
 func (g *randIDGenerator) NewID() string {
-	return fmt.Sprintf("%d", rand.Uint64())
+	return strconv.Itoa(int(rand.Uint64()))
 }

@@ -29,7 +29,7 @@ type sqlRepo struct {
 }
 
 // CREATE TABLE public.users (
-// 	user_id bigint GENERATED ALWAYS AS IDENTITY,
+// 	user_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
 // 	"name" varchar NOT NULL,
 // 	created_at timestamp NOT NULL,
 // 	CONSTRAINT users_pk PRIMARY KEY (user_id)

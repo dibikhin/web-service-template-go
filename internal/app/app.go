@@ -66,12 +66,12 @@ func Run() {
 	var svc dummy.UserService
 	{
 		// Postgres
-		pgConnString := fmt.Sprintf(
+		pgURL := fmt.Sprintf(
 			"postgres://%s:%s@%s:%d/%s?connect_timeout=%d&pool_max_conns=%d&application_name=%s",
 			cfg.Postgres.User, cfg.Postgres.Password, cfg.Postgres.Host, cfg.Postgres.Port,
 			cfg.Postgres.Database, cfg.Postgres.Timeout, 10, AppName,
 		)
-		pgPool, err := pgxpool.New(context.Background(), pgConnString)
+		pgPool, err := pgxpool.New(context.Background(), pgURL)
 		if err != nil {
 			logger.Log("msg", "connecting to postgres", "err", err)
 			return
