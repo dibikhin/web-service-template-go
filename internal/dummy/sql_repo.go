@@ -12,10 +12,6 @@ import (
 	"ws-dummy-go/internal/dummy/domain"
 )
 
-var (
-	testPostgresPool *pgxpool.Pool
-)
-
 var db = goqu.Dialect("postgres")
 
 type UsersSQLRepo interface {
@@ -23,12 +19,12 @@ type UsersSQLRepo interface {
 }
 
 func NewUsersSQLRepo(p *pgxpool.Pool) UsersSQLRepo {
-	return sqlRepo{
+	return usersSQLRepo{
 		pool: p,
 	}
 }
 
-type sqlRepo struct {
+type usersSQLRepo struct {
 	pool *pgxpool.Pool
 }
 
@@ -39,10 +35,12 @@ type sqlRepo struct {
 // );
 // ALTER TABLE public.users ADD PRIMARY KEY (user_id);
 
-func (r sqlRepo) Insert(ctx context.Context, name string) (domain.UserID, error) {
+func (r usersSQLRepo) Insert(ctx context.Context, name string) (domain.UserID, error) {
 	q1 := db.Insert("users").
 		Cols("name", "created_at").
 		Vals(goqu.Vals{name, goqu.L("NOW()")})
+
+		// .Returning() todord
 
 	sql1, params, err := q1.ToSQL()
 	if err != nil {

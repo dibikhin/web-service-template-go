@@ -124,6 +124,24 @@ func TestMain(m *testing.M) {
 		logger.Log("msg", "connecting to postgres", "err", err)
 	}
 
+	// CREATE TABLE public.users (
+	// 	user_id bigint GENERATED ALWAYS AS IDENTITY,
+	// 	"name" varchar NOT NULL,
+	// 	created_at timestamp with time zone NOT NULL DEFAULT NOW()
+	// );
+	// ALTER TABLE public.users ADD PRIMARY KEY (user_id);
+
+	_, err = testPostgresPool.Exec(context.Background(), `
+	CREATE TABLE public.users (
+		user_id bigint GENERATED ALWAYS AS IDENTITY,
+		"name" varchar NOT NULL,
+		created_at timestamp with time zone NOT NULL DEFAULT NOW()
+	);`)
+	if err != nil {
+		logger.Log("msg", "creating table", "err", err)
+		return
+	}
+
 	defer func() {
 		if err := testRedisClient.Close(); err != nil {
 			logger.Log("msg", "closing redis client", "err", err)
