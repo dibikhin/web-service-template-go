@@ -8,6 +8,9 @@ import (
 	"time"
 
 	"github.com/go-kit/log"
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
@@ -131,11 +134,11 @@ func TestMain(m *testing.M) {
 		}
 	}()
 
+	pgURL := fmt.Sprintf(
+		"postgres://%s:%s@localhost:%s/postgres?connect_timeout=%d&sslmode=disable",
+		username, password, pgImage.GetPort("5432/tcp"), 10,
+	)
 	if err := pool.Retry(func() error {
-		pgURL := fmt.Sprintf(
-			"postgres://%s:%s@localhost:%s/%s?connect_timeout=%d",
-			username, password, pgImage.GetPort("5432/tcp"), "postgres", 10,
-		)
 		testPostgresPool, err = pgxpool.New(context.Background(), pgURL)
 		if err != nil {
 			return err
@@ -153,15 +156,12 @@ func TestMain(m *testing.M) {
 		}
 	}()
 
-	_, err = testPostgresPool.Exec(context.Background(), `
-	CREATE TABLE public.users (
-		user_id bigint GENERATED ALWAYS AS IDENTITY,
-		"name" varchar NOT NULL,
-		created_at timestamp with time zone NOT NULL DEFAULT NOW()
-	);`)
+	mg, err := migrate.New("file://../../db/migrations", pgURL)
 	if err != nil {
-		logger.Log("msg", "creating table", "err", err)
-		return
+		logger.Log("msg", "initializing migrations", "err", err)
+	}
+	if err := mg.Up(); err != nil {
+		logger.Log("msg", "running migrations up", "err", err)
 	}
 
 	m.Run()

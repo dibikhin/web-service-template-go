@@ -28,13 +28,6 @@ type usersSQLRepo struct {
 	pool *pgxpool.Pool
 }
 
-// CREATE TABLE public.users (
-// 	user_id bigint GENERATED ALWAYS AS IDENTITY,
-// 	"name" varchar NOT NULL,
-// 	created_at timestamp with time zone NOT NULL DEFAULT NOW()
-// );
-// ALTER TABLE public.users ADD PRIMARY KEY (user_id);
-
 func (r usersSQLRepo) Insert(ctx context.Context, name string) (domain.UserID, error) {
 	q1 := db.Insert("users").
 		Cols("name", "created_at").

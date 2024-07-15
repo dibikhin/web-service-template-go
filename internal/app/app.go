@@ -66,12 +66,7 @@ func Run() {
 	var svc dummy.UserService
 	{
 		// Postgres
-		pgURL := fmt.Sprintf(
-			"postgres://%s:%s@%s:%d/%s?connect_timeout=%d&pool_max_conns=%d&application_name=%s",
-			cfg.Postgres.User, cfg.Postgres.Password, cfg.Postgres.Host, cfg.Postgres.Port,
-			cfg.Postgres.Database, cfg.Postgres.Timeout, PoolMaxConns, AppName,
-		)
-		pgPool, err := pgxpool.New(context.Background(), pgURL)
+		pgPool, err := pgxpool.New(context.Background(), composePGURL(cfg.Postgres))
 		if err != nil {
 			logger.Log("msg", "connecting to postgres", "err", err)
 			return
@@ -199,4 +194,11 @@ func Run() {
 	if err := server.Shutdown(ctx); err != nil {
 		logger.Log("msg", "server shutting down", "err", err)
 	}
+}
+
+func composePGURL(cfg PostgresConfig) string {
+	return fmt.Sprintf(
+		"postgres://%s:%s@%s:%d/%s?connect_timeout=%d&pool_max_conns=%d&application_name=%s&sslmode=disable",
+		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.Database, cfg.Timeout, PoolMaxConns, AppName,
+	)
 }
