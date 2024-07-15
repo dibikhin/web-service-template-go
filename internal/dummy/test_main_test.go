@@ -37,7 +37,11 @@ func TestMain(m *testing.M) {
 		logger.Log("msg", "pinging docker", "err", err)
 		return
 	}
-	pool.MaxWait = timeout * 2 * time.Second
+	pool.MaxWait = timeout * time.Second
+
+	defer func() {
+		logger.Log("msg", "disconnected from docker")
+	}()
 
 	redisImage, err := pool.RunWithOptions(&dockertest.RunOptions{
 		Repository: "bitnami/redis",
@@ -94,11 +98,19 @@ func TestMain(m *testing.M) {
 	}); err != nil {
 		logger.Log("msg", "connecting to redis", "err", err)
 	}
+	defer func() {
+		if err := testRedisClient.Close(); err != nil {
+			logger.Log("msg", "closing redis client", "err", err)
+		}
+		if err := pool.Purge(redisImage); err != nil {
+			logger.Log("msg", "purging redis", "err", err)
+		}
+	}()
+
 	if err := pool.Retry(func() error {
 		uri := fmt.Sprintf("mongodb://localhost:%s", mongoImage.GetPort("27017/tcp"))
 
-		testMongoClient, err = mongo.Connect(context.Background(), options.Client().
-			ApplyURI(uri).
+		testMongoClient, err = mongo.Connect(context.Background(), options.Client().ApplyURI(uri).
 			SetConnectTimeout(1*time.Second).
 			SetServerSelectionTimeout(1*time.Second).
 			SetTimeout(1*time.Second))
@@ -110,10 +122,19 @@ func TestMain(m *testing.M) {
 	}); err != nil {
 		logger.Log("msg", "connecting to mongodb", "err", err)
 	}
+	defer func() {
+		if err := testMongoClient.Disconnect(context.Background()); err != nil {
+			logger.Log("msg", "disconnecting from mongodb", "err", err)
+		}
+		if err := pool.Purge(mongoImage); err != nil {
+			logger.Log("msg", "purging mongodb", "err", err)
+		}
+	}()
+
 	if err := pool.Retry(func() error {
 		pgURL := fmt.Sprintf(
 			"postgres://%s:%s@localhost:%s/%s?connect_timeout=%d",
-			"mytestuser", "mytestpassword", pgImage.GetPort("5432/tcp"), "postgres", 10,
+			username, password, pgImage.GetPort("5432/tcp"), "postgres", 10,
 		)
 		testPostgresPool, err = pgxpool.New(context.Background(), pgURL)
 		if err != nil {
@@ -124,12 +145,13 @@ func TestMain(m *testing.M) {
 		logger.Log("msg", "connecting to postgres", "err", err)
 	}
 
-	// CREATE TABLE public.users (
-	// 	user_id bigint GENERATED ALWAYS AS IDENTITY,
-	// 	"name" varchar NOT NULL,
-	// 	created_at timestamp with time zone NOT NULL DEFAULT NOW()
-	// );
-	// ALTER TABLE public.users ADD PRIMARY KEY (user_id);
+	defer func() {
+		testPostgresPool.Close()
+
+		if err := pool.Purge(pgImage); err != nil {
+			logger.Log("msg", "purging postgres", "err", err)
+		}
+	}()
 
 	_, err = testPostgresPool.Exec(context.Background(), `
 	CREATE TABLE public.users (
@@ -141,28 +163,6 @@ func TestMain(m *testing.M) {
 		logger.Log("msg", "creating table", "err", err)
 		return
 	}
-
-	defer func() {
-		if err := testRedisClient.Close(); err != nil {
-			logger.Log("msg", "closing redis client", "err", err)
-		}
-		if err := testMongoClient.Disconnect(context.Background()); err != nil {
-			logger.Log("msg", "disconnecting from mongodb", "err", err)
-		}
-		testPostgresPool.Close()
-
-		if err := pool.Purge(redisImage); err != nil {
-			logger.Log("msg", "purging redis", "err", err)
-		}
-		if err := pool.Purge(mongoImage); err != nil {
-			logger.Log("msg", "purging mongodb", "err", err)
-		}
-		if err := pool.Purge(pgImage); err != nil {
-			logger.Log("msg", "purging postgres", "err", err)
-		}
-
-		logger.Log("msg", "disconnected from docker")
-	}()
 
 	m.Run()
 }

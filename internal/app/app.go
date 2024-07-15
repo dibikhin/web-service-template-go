@@ -25,16 +25,16 @@ import (
 	dummymw "ws-dummy-go/internal/dummy/middleware"
 )
 
-const AppName = "ws-dummy-go"
+const (
+	AppName      = "ws-dummy-go"
+	PoolMaxConns = 10
+)
 
 func Run() {
-	var (
-		file = flag.String("config", "dev.env", "config file")
-	)
+	file := flag.String("config", "dev.env", "config file")
 	flag.Parse()
 
-	var logger log.Logger
-	logger = log.NewLogfmtLogger(os.Stderr)
+	logger := log.NewLogfmtLogger(os.Stderr)
 	logger = log.With(logger, "ts", log.DefaultTimestampUTC, "caller", log.DefaultCaller)
 
 	logger.Log("msg", "server starting...")
@@ -69,7 +69,7 @@ func Run() {
 		pgURL := fmt.Sprintf(
 			"postgres://%s:%s@%s:%d/%s?connect_timeout=%d&pool_max_conns=%d&application_name=%s",
 			cfg.Postgres.User, cfg.Postgres.Password, cfg.Postgres.Host, cfg.Postgres.Port,
-			cfg.Postgres.Database, cfg.Postgres.Timeout, 10, AppName,
+			cfg.Postgres.Database, cfg.Postgres.Timeout, PoolMaxConns, AppName,
 		)
 		pgPool, err := pgxpool.New(context.Background(), pgURL)
 		if err != nil {

@@ -6,7 +6,7 @@ WORKDIR /app
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-        go build -ldflags '-s -w' -trimpath -o main ./cmd
+    go build -ldflags '-s -w' -trimpath -o main ./cmd
 
 FROM gcr.io/distroless/static-debian12:nonroot as runner
 
