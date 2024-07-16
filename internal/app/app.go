@@ -22,7 +22,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"ws-dummy-go/internal/dummy"
-	dummymw "ws-dummy-go/internal/dummy/middleware"
+	"ws-dummy-go/internal/dummy/middleware"
 )
 
 const (
@@ -144,23 +144,24 @@ func Run() {
 		svc = dummy.NewUserService(kvRepo, sqlRepo, docsRepo)
 	}
 
-	svc = dummymw.NewLoggingMiddleware(logger)(svc)
-	svc = dummymw.NewInstrumentingMiddleware(requestCount, requestLatency)(svc)
-
-	logErrHandler := httptransport.ServerErrorHandler(transport.NewLogErrorHandler(logger))
+	svc = middleware.NewLoggingMiddleware(logger)(svc)
+	svc = middleware.NewInstrumentingMiddleware(requestCount, requestLatency)(svc)
 
 	// todord return request id
 
 	createUserHandler := httptransport.NewServer(
-		dummymw.RecoveryMiddleware(logger)(
-			dummymw.MakeCreateUserEndpoint(svc),
+		middleware.Recovery(logger)(
+			middleware.MakeCreateUserEndpoint(svc),
 		),
-		dummymw.RequestIDMiddleware()(
-			dummymw.MakeLoggingMiddleware(logger, cfg.Mode)(
-				dummymw.DecodeCreateUserRequest,
-			)),
+		middleware.DecodingRecovery(logger)(
+			middleware.RequestID()(
+				middleware.Logging(logger, cfg.Mode)(
+					middleware.DecodeCreateUserRequest,
+				),
+			),
+		),
 		httptransport.EncodeJSONResponse,
-		logErrHandler,
+		httptransport.ServerErrorHandler(transport.NewLogErrorHandler(logger)),
 	)
 
 	server := &http.Server{

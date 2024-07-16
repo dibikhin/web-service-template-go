@@ -16,28 +16,44 @@ import (
 	"ws-dummy-go/internal/dummy"
 )
 
-type DecodingMiddleware func(httptransport.DecodeRequestFunc) httptransport.DecodeRequestFunc
+const (
+	RequestIDHeader RequestIDType = "X-Request-ID"
+)
 
-func RecoveryMiddleware(logger log.Logger) endpoint.Middleware {
+type (
+	RequestIDType      string
+	DecodingMiddleware func(httptransport.DecodeRequestFunc) httptransport.DecodeRequestFunc
+)
+
+type createUserRequest struct {
+	Name string `json:"name"`
+}
+
+type createUserResponse struct {
+	UserID string `json:"userId"`
+	Err    string `json:"err,omitempty"`
+}
+
+func Recovery(logger log.Logger) endpoint.Middleware {
 	return func(next endpoint.Endpoint) endpoint.Endpoint {
-		return func(ctx context.Context, request interface{}) (interface{}, error) {
+		return func(ctx context.Context, req interface{}) (interface{}, error) {
 			defer func() {
 				if err := recover(); err != nil {
-					logger.Log("msg", "panic", "err", err, "stack", string(debug.Stack()))
+					logger.Log("msg", "panic recovered", "err", err, "stack", string(debug.Stack()))
 				}
 			}()
-			return next(ctx, request)
+			return next(ctx, req)
 		}
 	}
 }
 
 func MakeCreateUserEndpoint(svc dummy.UserService) endpoint.Endpoint {
-	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		req, ok := request.(createUserRequest)
+	return func(ctx context.Context, req interface{}) (interface{}, error) {
+		request, ok := req.(createUserRequest)
 		if !ok {
 			return createUserResponse{"", "invalid request"}, nil
 		}
-		id, err := svc.CreateUser(ctx, req.Name)
+		id, err := svc.CreateUser(ctx, request.Name)
 		if err != nil {
 			return createUserResponse{"", err.Error()}, nil
 		}
@@ -45,38 +61,48 @@ func MakeCreateUserEndpoint(svc dummy.UserService) endpoint.Endpoint {
 	}
 }
 
-func DecodeCreateUserRequest(_ context.Context, r *http.Request) (interface{}, error) {
+func DecodeCreateUserRequest(_ context.Context, req *http.Request) (interface{}, error) {
 	var request createUserRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+
+	if err := json.NewDecoder(req.Body).Decode(&request); err != nil {
 		return nil, fmt.Errorf("decoding request: %w", err)
 	}
 	return request, nil
 }
 
-type RequestIDType string
-
-const RequestID RequestIDType = "X-Request-ID"
-
-func RequestIDMiddleware() DecodingMiddleware {
+func DecodingRecovery(logger log.Logger) DecodingMiddleware {
 	return func(next httptransport.DecodeRequestFunc) httptransport.DecodeRequestFunc {
-		return func(ctx context.Context, r *http.Request) (interface{}, error) {
-
-			reqID := r.Header.Get(string(RequestID))
-			if reqID == "" {
-				reqID = xid.New().String()
-			}
-			ctx = context.WithValue(ctx, RequestID, reqID)
-			return next(ctx, r)
+		return func(ctx context.Context, req *http.Request) (interface{}, error) {
+			defer func() {
+				if err := recover(); err != nil {
+					logger.Log("msg", "panic recovered", "err", err, "stack", string(debug.Stack()))
+				}
+			}()
+			return next(ctx, req)
 		}
 	}
 }
 
-func MakeLoggingMiddleware(logger log.Logger, mode string) DecodingMiddleware {
+func RequestID() DecodingMiddleware {
+	return func(next httptransport.DecodeRequestFunc) httptransport.DecodeRequestFunc {
+		return func(ctx context.Context, req *http.Request) (interface{}, error) {
+
+			reqID := req.Header.Get(string(RequestIDHeader))
+			if reqID == "" {
+				reqID = xid.New().String()
+			}
+			ctx = context.WithValue(ctx, RequestIDHeader, reqID)
+			return next(ctx, req)
+		}
+	}
+}
+
+func Logging(logger log.Logger, mode string) DecodingMiddleware {
 	return func(next httptransport.DecodeRequestFunc) httptransport.DecodeRequestFunc {
 		return func(ctx context.Context, req *http.Request) (interface{}, error) {
 			body := []byte("hidden")
 
-			reqID := ctx.Value(RequestID).(string)
+			reqID := ctx.Value(RequestIDHeader).(string)
 
 			if mode == "debug" {
 				var err error
@@ -92,13 +118,4 @@ func MakeLoggingMiddleware(logger log.Logger, mode string) DecodingMiddleware {
 			return next(ctx, req)
 		}
 	}
-}
-
-type createUserRequest struct {
-	Name string `json:"name"`
-}
-
-type createUserResponse struct {
-	ID  string `json:"id"`
-	Err string `json:"err,omitempty"`
 }
