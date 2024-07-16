@@ -31,6 +31,7 @@ func TestMain(m *testing.M) {
 
 	logger.Log("msg", "connecting to docker")
 
+	// Dockertest
 	pool, err := dockertest.NewPool("")
 	if err != nil {
 		logger.Log("msg", "connecting to docker", "err", err)
@@ -46,6 +47,7 @@ func TestMain(m *testing.M) {
 		logger.Log("msg", "disconnected from docker")
 	}()
 
+	// Run images
 	redisImage, err := pool.RunWithOptions(&dockertest.RunOptions{
 		Repository: "bitnami/redis",
 		Tag:        "7.0",
@@ -91,6 +93,7 @@ func TestMain(m *testing.M) {
 	mongoImage.Expire(timeout)
 	pgImage.Expire(timeout)
 
+	// Connect to images
 	if err := pool.Retry(func() error {
 		testRedisClient = redis.NewClient(&redis.Options{
 			Addr:     fmt.Sprintf("localhost:%s", redisImage.GetPort("6379/tcp")),
@@ -102,6 +105,8 @@ func TestMain(m *testing.M) {
 		logger.Log("msg", "connecting to redis", "err", err)
 		return
 	}
+	logger.Log("msg", "connected to redis")
+
 	defer func() {
 		if err := testRedisClient.Close(); err != nil {
 			logger.Log("msg", "closing redis client", "err", err)
@@ -127,6 +132,8 @@ func TestMain(m *testing.M) {
 		logger.Log("msg", "connecting to mongodb", "err", err)
 		return
 	}
+	logger.Log("msg", "connected to mongodb")
+
 	defer func() {
 		if err := testMongoClient.Disconnect(context.Background()); err != nil {
 			logger.Log("msg", "disconnecting from mongodb", "err", err)
@@ -150,6 +157,7 @@ func TestMain(m *testing.M) {
 		logger.Log("msg", "connecting to postgres", "err", err)
 		return
 	}
+	logger.Log("msg", "connected to postgres")
 
 	defer func() {
 		testPostgresPool.Close()
@@ -159,6 +167,7 @@ func TestMain(m *testing.M) {
 		}
 	}()
 
+	// Migrate
 	mg, err := migrate.New("file://../../db/migrations", pgURL)
 	if err != nil {
 		logger.Log("msg", "initializing migrations", "err", err)

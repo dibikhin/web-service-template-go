@@ -21,17 +21,12 @@ Done:
 golang-ci
 Kafka
 
-Tests
-
 Error Handling
 Validation
-
-Fake Redis
-Fake S3
 Fuzzy tests
 
 Swagger
-Transactions
+
 Caching Decorator
 
 HTTP Client + rate limiter, balancer, circuit braker
