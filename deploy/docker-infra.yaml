@@ -1,17 +1,35 @@
 services:
 
-  minio:
-    hostname: dummy-minio
-    container_name: dummy-minio
-    image: "bitnami/minio:2024.7.10"
+  postgres:
+    hostname: dummy-postgres
+    container_name: dummy-postgres
+    image: "bitnami/postgresql:16"
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "5432:5432"
     environment:
-      - MINIO_ROOT_USER=minio
-      - MINIO_ROOT_PASSWORD=mydummypassword
+      - POSTGRESQL_DATABASE=dummy
+      - POSTGRESQL_USERNAME=mydummyuser
+      - POSTGRESQL_PASSWORD=mydummypassword
+    volumes:
+      - postgres_data:/postgres/data
     networks:
-      - local
+     - local
+
+  mongo:
+    hostname: dummy-mongo
+    container_name: dummy-mongo
+    image: "bitnami/mongodb:7.0"
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGODB_ROOT_PASSWORD=mydummyrootpassword
+      - MONGODB_DATABASE=dummy
+      - MONGODB_USERNAME=mydummyuser
+      - MONGODB_PASSWORD=mydummypassword
+    volumes:
+      - mongo_data:/mongo/data
+    networks:
+     - local
 
   redis:
     hostname: dummy-redis
@@ -24,20 +42,6 @@ services:
       - REDIS_DISABLE_COMMANDS=FLUSHDB,FLUSHALL
     volumes:
       - redis_data:/redis/data
-    networks:
-     - local
-
-  mongo:
-    hostname: dummy-mongo
-    container_name: dummy-mongo
-    image: "bitnami/mongodb:7.0"
-    ports:
-      - "27017:27017"
-    environment:
-      - MONGODB_ROOT_USER=mydummyuser
-      - MONGODB_ROOT_PASSWORD=mydummypassword
-    volumes:
-      - mongo_data:/mongo/data
     networks:
      - local
 
@@ -57,19 +61,18 @@ services:
     networks:
      - local
 
-  postgres:
-    hostname: dummy-postgres
-    container_name: dummy-postgres
-    image: "bitnami/postgresql:16"
+  minio:
+    hostname: dummy-minio
+    container_name: dummy-minio
+    image: "bitnami/minio:2024.7.10"
     ports:
-      - "5432:5432"
+      - "9000:9000"
+      - "9001:9001"
     environment:
-      - POSTGRESQL_USERNAME=mydummyuser
-      - POSTGRESQL_PASSWORD=mydummypassword
-    volumes:
-      - postgres_data:/postgres/data
+      - MINIO_ROOT_USER=minio
+      - MINIO_ROOT_PASSWORD=mydummypassword
     networks:
-     - local
+      - local
 
 volumes:
   postgres_data:

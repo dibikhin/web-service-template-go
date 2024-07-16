@@ -100,6 +100,7 @@ func TestMain(m *testing.M) {
 		return testRedisClient.Ping(context.Background()).Err()
 	}); err != nil {
 		logger.Log("msg", "connecting to redis", "err", err)
+		return
 	}
 	defer func() {
 		if err := testRedisClient.Close(); err != nil {
@@ -124,6 +125,7 @@ func TestMain(m *testing.M) {
 		return testMongoClient.Ping(context.Background(), nil)
 	}); err != nil {
 		logger.Log("msg", "connecting to mongodb", "err", err)
+		return
 	}
 	defer func() {
 		if err := testMongoClient.Disconnect(context.Background()); err != nil {
@@ -146,6 +148,7 @@ func TestMain(m *testing.M) {
 		return testPostgresPool.Ping(context.Background())
 	}); err != nil {
 		logger.Log("msg", "connecting to postgres", "err", err)
+		return
 	}
 
 	defer func() {
@@ -159,9 +162,11 @@ func TestMain(m *testing.M) {
 	mg, err := migrate.New("file://../../db/migrations", pgURL)
 	if err != nil {
 		logger.Log("msg", "initializing migrations", "err", err)
+		return
 	}
 	if err := mg.Up(); err != nil {
 		logger.Log("msg", "running migrations up", "err", err)
+		return
 	}
 
 	m.Run()

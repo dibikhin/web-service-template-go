@@ -32,8 +32,7 @@ func (r usersSQLRepo) Insert(ctx context.Context, name string) (domain.UserID, e
 	q1 := db.Insert("users").
 		Cols("name", "created_at").
 		Vals(goqu.Vals{name, goqu.L("NOW()")})
-
-		// .Returning() todord
+		// Returning("user_id")
 
 	sql1, params, err := q1.ToSQL()
 	if err != nil {

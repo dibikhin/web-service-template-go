@@ -66,7 +66,7 @@ func Run() {
 	var svc dummy.UserService
 	{
 		// Postgres
-		pgPool, err := pgxpool.New(context.Background(), composePGURL(cfg.Postgres))
+		pgPool, err := pgxpool.New(context.Background(), composePostgresURL(cfg.Postgres))
 		if err != nil {
 			logger.Log("msg", "connecting to postgres", "err", err)
 			return
@@ -108,10 +108,9 @@ func Run() {
 		}()
 
 		// Mongo
-		mongoURI := fmt.Sprintf("mongodb://%s:%s@%s:%d/?ssl=false&authSource=admin",
-			cfg.Mongo.Username, cfg.Mongo.Password, cfg.Mongo.Host, cfg.Mongo.Port,
+		mongoURI := fmt.Sprintf("mongodb://%s:%s@%s:%d/%s",
+			cfg.Mongo.Username, cfg.Mongo.Password, cfg.Mongo.Host, cfg.Mongo.Port, cfg.Mongo.Database,
 		)
-
 		mongoClient, err := mongo.Connect(context.Background(), options.Client().
 			ApplyURI(mongoURI).
 			SetConnectTimeout(cfg.Mongo.Timeout).
@@ -196,7 +195,7 @@ func Run() {
 	}
 }
 
-func composePGURL(cfg PostgresConfig) string {
+func composePostgresURL(cfg PostgresConfig) string {
 	return fmt.Sprintf(
 		"postgres://%s:%s@%s:%d/%s?connect_timeout=%d&pool_max_conns=%d&application_name=%s&sslmode=disable",
 		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.Database, cfg.Timeout, PoolMaxConns, AppName,
