@@ -36,10 +36,12 @@ type createUserResponse struct {
 
 func Recovery(logger log.Logger) endpoint.Middleware {
 	return func(next endpoint.Endpoint) endpoint.Endpoint {
-		return func(ctx context.Context, req interface{}) (interface{}, error) {
+		return func(ctx context.Context, req interface{}) (v interface{}, e error) {
 			defer func() {
 				if err := recover(); err != nil {
 					logger.Log("msg", "panic recovered", "err", err, "stack", string(debug.Stack()))
+					v = nil
+					e = NewInternalServerError()
 				}
 			}()
 			return next(ctx, req)
@@ -72,10 +74,12 @@ func DecodeCreateUserRequest(_ context.Context, req *http.Request) (interface{},
 
 func DecodingRecovery(logger log.Logger) DecodingMiddleware {
 	return func(next httptransport.DecodeRequestFunc) httptransport.DecodeRequestFunc {
-		return func(ctx context.Context, req *http.Request) (interface{}, error) {
+		return func(ctx context.Context, req *http.Request) (v interface{}, e error) {
 			defer func() {
 				if err := recover(); err != nil {
 					logger.Log("msg", "panic recovered", "err", err, "stack", string(debug.Stack()))
+					v = nil
+					e = NewValidationError("invalid request")
 				}
 			}()
 			return next(ctx, req)
