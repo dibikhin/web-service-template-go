@@ -7,6 +7,7 @@ import (
 	"github.com/doug-martin/goqu/v9"
 	// Needed to choose dialect
 	_ "github.com/doug-martin/goqu/v9/dialect/postgres"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"ws-dummy-go/internal/dummy/domain"
@@ -29,10 +30,10 @@ type usersSQLRepo struct {
 }
 
 func (r usersSQLRepo) Insert(ctx context.Context, name string) (domain.UserID, error) {
-	q1 := db.Insert("users").
+	q1 := db.
+		Insert("users").
 		Cols("name", "created_at").
 		Vals(goqu.Vals{name, goqu.L("NOW()")})
-		// Returning("user_id")
 
 	sql1, params, err := q1.ToSQL()
 	if err != nil {
@@ -51,6 +52,9 @@ func (r usersSQLRepo) Insert(ctx context.Context, name string) (domain.UserID, e
 	}
 	var res string
 	if err := r.pool.QueryRow(ctx, sql2).Scan(&res); err != nil {
+		if err == pgx.ErrNoRows {
+			return "", NewNotFoundError("user not found 1")
+		}
 		return "", fmt.Errorf("executing query: %w", err)
 	}
 	return domain.UserID(res), nil

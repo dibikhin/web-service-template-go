@@ -3,25 +3,18 @@ package middleware
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"net/http"
-	"net/http/httputil"
 	"runtime/debug"
 
 	"github.com/go-kit/kit/endpoint"
 	httptransport "github.com/go-kit/kit/transport/http"
 	"github.com/go-kit/log"
-	"github.com/rs/xid"
 
 	"ws-dummy-go/internal/dummy"
 )
 
-const (
-	RequestIDHeader RequestIDType = "X-Request-ID"
-)
-
 type (
-	RequestIDType      string
 	DecodingMiddleware func(httptransport.DecodeRequestFunc) httptransport.DecodeRequestFunc
 )
 
@@ -31,7 +24,6 @@ type createUserRequest struct {
 
 type createUserResponse struct {
 	UserID string `json:"userId"`
-	Err    string `json:"err,omitempty"`
 }
 
 func Recovery(logger log.Logger) endpoint.Middleware {
@@ -49,29 +41,6 @@ func Recovery(logger log.Logger) endpoint.Middleware {
 	}
 }
 
-func MakeCreateUserEndpoint(svc dummy.UserService) endpoint.Endpoint {
-	return func(ctx context.Context, req interface{}) (interface{}, error) {
-		request, ok := req.(createUserRequest)
-		if !ok {
-			return createUserResponse{"", "invalid request"}, nil
-		}
-		id, err := svc.CreateUser(ctx, request.Name)
-		if err != nil {
-			return createUserResponse{"", err.Error()}, nil
-		}
-		return createUserResponse{string(id), ""}, nil
-	}
-}
-
-func DecodeCreateUserRequest(_ context.Context, req *http.Request) (interface{}, error) {
-	var request createUserRequest
-
-	if err := json.NewDecoder(req.Body).Decode(&request); err != nil {
-		return nil, fmt.Errorf("decoding request: %w", err)
-	}
-	return request, nil
-}
-
 func DecodingRecovery(logger log.Logger) DecodingMiddleware {
 	return func(next httptransport.DecodeRequestFunc) httptransport.DecodeRequestFunc {
 		return func(ctx context.Context, req *http.Request) (v interface{}, e error) {
@@ -79,7 +48,7 @@ func DecodingRecovery(logger log.Logger) DecodingMiddleware {
 				if err := recover(); err != nil {
 					logger.Log("msg", "panic recovered", "err", err, "stack", string(debug.Stack()))
 					v = nil
-					e = NewValidationError("invalid request")
+					e = NewValidationError("request validation failed")
 				}
 			}()
 			return next(ctx, req)
@@ -87,39 +56,41 @@ func DecodingRecovery(logger log.Logger) DecodingMiddleware {
 	}
 }
 
-func RequestID() DecodingMiddleware {
-	return func(next httptransport.DecodeRequestFunc) httptransport.DecodeRequestFunc {
-		return func(ctx context.Context, req *http.Request) (interface{}, error) {
+func DecodeCreateUserRequest(_ context.Context, req *http.Request) (interface{}, error) {
+	if req.ContentLength == 0 {
+		return nil, NewValidationError("empty request")
+	}
+	var request createUserRequest
+	if err := json.NewDecoder(req.Body).Decode(&request); err != nil {
+		// TODO: log error
+		return nil, NewValidationError("cannot decode request")
+	}
+	return request, nil
+}
 
-			reqID := req.Header.Get(string(RequestIDHeader))
-			if reqID == "" {
-				reqID = xid.New().String()
-			}
-			ctx = context.WithValue(ctx, RequestIDHeader, reqID)
-			return next(ctx, req)
+func MakeCreateUserEndpoint(svc dummy.UserService) endpoint.Endpoint {
+	return func(ctx context.Context, req interface{}) (interface{}, error) {
+		request, ok := req.(createUserRequest)
+		if !ok {
+			return createUserResponse{}, nil // todord 500
 		}
+		id, err := svc.CreateUser(ctx, request.Name)
+		if err != nil {
+			var e *dummy.NotFoundError
+			if errors.As(err, &e) {
+				return nil, NewNotFoundError(e.Error())
+			}
+			return nil, NewInternalServerError()
+		}
+		return createUserResponse{UserID: string(id)}, nil
 	}
 }
 
-func Logging(logger log.Logger, mode string) DecodingMiddleware {
-	return func(next httptransport.DecodeRequestFunc) httptransport.DecodeRequestFunc {
-		return func(ctx context.Context, req *http.Request) (interface{}, error) {
-			body := []byte("hidden")
-
-			reqID := ctx.Value(RequestIDHeader).(string)
-
-			if mode == "debug" {
-				var err error
-				body, err = httputil.DumpRequest(req, true)
-				if err != nil {
-					return nil, fmt.Errorf("dumping request: %w", err)
-				}
-			}
-			logger.Log(
-				"msg", "got request", "method", req.Method, "URL", req.URL, "len", req.ContentLength,
-				"reqID", reqID, "body", body,
-			)
-			return next(ctx, req)
-		}
+func MyErrorEncoder(
+	rf httptransport.ServerResponseFunc, ee httptransport.ErrorEncoder,
+) httptransport.ErrorEncoder {
+	return func(ctx context.Context, err error, w http.ResponseWriter) {
+		rf(ctx, w)
+		ee(ctx, err, w)
 	}
 }

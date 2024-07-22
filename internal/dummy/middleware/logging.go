@@ -2,8 +2,11 @@ package middleware
 
 import (
 	"context"
+	"net/http"
+	"net/http/httputil"
 	"time"
 
+	httptransport "github.com/go-kit/kit/transport/http"
 	"github.com/go-kit/log"
 
 	"ws-dummy-go/internal/dummy"
@@ -23,7 +26,7 @@ type logmw struct {
 
 func (mw logmw) CreateUser(ctx context.Context, name string) (output domain.UserID, err error) {
 	defer func(begin time.Time) {
-		_ = mw.logger.Log(
+		mw.logger.Log(
 			"method", "CreateUser",
 			"input", name,
 			"output", output,
@@ -34,4 +37,25 @@ func (mw logmw) CreateUser(ctx context.Context, name string) (output domain.User
 
 	output, err = mw.UserService.CreateUser(ctx, name)
 	return
+}
+
+func RequestLogging(logger log.Logger, mode string) httptransport.RequestFunc {
+	return func(ctx context.Context, req *http.Request) context.Context {
+		rawRequest := []byte("hidden")
+
+		if mode == "debug" {
+			var err error
+			rawRequest, err = httputil.DumpRequest(req, true)
+			if err != nil {
+				logger.Log("msg", "dumping request", "err", err)
+				return ctx
+			}
+		}
+		reqID := ctx.Value(requestIDHeader).(string)
+		logger.Log(
+			"msg", "request", "method", req.Method, "url", req.URL, "len", req.ContentLength,
+			"reqID", reqID, "rawRequest", rawRequest,
+		)
+		return ctx
+	}
 }

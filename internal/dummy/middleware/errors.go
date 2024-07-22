@@ -2,9 +2,73 @@ package middleware
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 )
+
+type (
+	ErrorResponse struct {
+		Error APIError `json:"error"`
+	}
+
+	APIError struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+	}
+)
+
+// 400 Bad Request
+
+type ValidationError struct {
+	Message string
+}
+
+func NewValidationError(msg string) error {
+	return &ValidationError{Message: msg}
+}
+
+func (e *ValidationError) Error() string {
+	return e.Message
+}
+
+func (ValidationError) StatusCode() int {
+	return http.StatusBadRequest
+}
+
+func (e *ValidationError) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&ErrorResponse{
+		Error: APIError{
+			Code:    60801,
+			Message: e.Error(),
+		},
+	})
+}
+
+// 404 Not Found
+
+type NotFoundError struct {
+	Message string
+}
+
+func NewNotFoundError(msg string) error {
+	return &NotFoundError{Message: msg}
+}
+
+func (e *NotFoundError) Error() string {
+	return e.Message
+}
+
+func (NotFoundError) StatusCode() int {
+	return http.StatusNotFound
+}
+
+func (e *NotFoundError) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&ErrorResponse{
+		Error: APIError{
+			Code:    60802,
+			Message: e.Error(),
+		},
+	})
+}
 
 type InternalServerError struct{}
 
@@ -21,37 +85,10 @@ func (InternalServerError) StatusCode() int {
 }
 
 func (e *InternalServerError) MarshalJSON() ([]byte, error) {
-	return json.Marshal(&struct {
-		Code    int    `json:"code"`
-		Message string `json:"message"`
-	}{
-		Code:    60901,
-		Message: e.Error(),
-	})
-}
-
-type ValidationError struct {
-	Message string
-}
-
-func NewValidationError(msg string) error {
-	return &ValidationError{Message: msg}
-}
-
-func (e *ValidationError) Error() string {
-	return fmt.Sprintf("validation error: %s", e.Message)
-}
-
-func (ValidationError) StatusCode() int {
-	return http.StatusBadRequest
-}
-
-func (e *ValidationError) MarshalJSON() ([]byte, error) {
-	return json.Marshal(&struct {
-		Code    int    `json:"code"`
-		Message string `json:"message"`
-	}{
-		Code:    60801,
-		Message: e.Error(),
+	return json.Marshal(&ErrorResponse{
+		Error: APIError{
+			Code:    60901,
+			Message: e.Error(),
+		},
 	})
 }

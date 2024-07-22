@@ -32,7 +32,8 @@ func (r usersDocRepo) Insert(ctx context.Context, name string) (domain.UserID, e
 
 	res, err := r.col.InsertOne(ctx, bson.D{
 		{Key: "_id", Value: newID},
-		{Key: "name", Value: name}, {Key: "created_at", Value: time.Now()},
+		{Key: "name", Value: name},
+		{Key: "created_at", Value: time.Now()},
 	})
 	if err != nil {
 		return "", fmt.Errorf("inserting a doc: %w", err)

@@ -25,15 +25,15 @@ type userService struct {
 func (s userService) CreateUser(ctx context.Context, name string) (domain.UserID, error) {
 	id1, err := s.sqlRepo.Insert(ctx, name)
 	if err != nil {
-		return "", fmt.Errorf("creating user in sql repo: %w", err)
+		return "", fmt.Errorf("inserting user in sql repo: %w", err)
 	}
 	id2, err := s.kvRepo.Set(ctx, name)
 	if err != nil {
-		return "", fmt.Errorf("creating user in kv repo: %w", err)
+		return "", fmt.Errorf("setting user in kv repo: %w", err)
 	}
 	id3, err := s.docsRepo.Insert(ctx, name)
 	if err != nil {
-		return "", fmt.Errorf("creating user in docs repo: %w", err)
+		return "", fmt.Errorf("inserting user in docs repo: %w", err)
 	}
 	return domain.UserID(fmt.Sprintf("%s-%s-%s", id1, id2, id3)), nil
 }

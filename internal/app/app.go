@@ -26,8 +26,8 @@ import (
 )
 
 const (
-	AppName      = "ws-dummy-go"
-	PoolMaxConns = 10
+	appName      = "ws-dummy-go"
+	poolMaxConns = 10
 )
 
 func Run() {
@@ -147,21 +147,21 @@ func Run() {
 	svc = middleware.NewLoggingMiddleware(logger)(svc)
 	svc = middleware.NewInstrumentingMiddleware(requestCount, requestLatency)(svc)
 
-	// todord return request id
-
 	createUserHandler := httptransport.NewServer(
 		middleware.Recovery(logger)(
 			middleware.MakeCreateUserEndpoint(svc),
 		),
 		middleware.DecodingRecovery(logger)(
-			middleware.RequestID()(
-				middleware.Logging(logger, cfg.Mode)(
-					middleware.DecodeCreateUserRequest,
-				),
-			),
+			middleware.DecodeCreateUserRequest,
 		),
 		httptransport.EncodeJSONResponse,
+		httptransport.ServerBefore(middleware.RequestID),
+		httptransport.ServerBefore(middleware.RequestLogging(logger, cfg.Mode)),
+		httptransport.ServerAfter(middleware.SetRequestID),
 		httptransport.ServerErrorHandler(transport.NewLogErrorHandler(logger)),
+		httptransport.ServerErrorEncoder(middleware.MyErrorEncoder(
+			middleware.SetRequestID, httptransport.DefaultErrorEncoder,
+		)),
 	)
 
 	server := &http.Server{
@@ -199,6 +199,6 @@ func Run() {
 func composePostgresURL(cfg PostgresConfig) string {
 	return fmt.Sprintf(
 		"postgres://%s:%s@%s:%d/%s?connect_timeout=%d&pool_max_conns=%d&application_name=%s&sslmode=disable",
-		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.Database, cfg.Timeout, PoolMaxConns, AppName,
+		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.Database, cfg.Timeout, poolMaxConns, appName,
 	)
 }
