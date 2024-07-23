@@ -50,15 +50,15 @@ func Run() {
 	fieldKeys := []string{"method", "error"}
 
 	requestCount := kitprometheus.NewCounterFrom(stdprometheus.CounterOpts{
-		Namespace: "my_group",
-		Subsystem: "dummy_service",
+		Namespace: "dummy_group",
+		Subsystem: "ws_dummy_go",
 		Name:      "request_count",
 		Help:      "Number of requests received.",
 	}, fieldKeys)
 
 	requestLatency := kitprometheus.NewSummaryFrom(stdprometheus.SummaryOpts{
-		Namespace: "my_group",
-		Subsystem: "dummy_service",
+		Namespace: "dummy_group",
+		Subsystem: "ws_dummy_go",
 		Name:      "request_latency_microseconds",
 		Help:      "Total duration of requests in microseconds.",
 	}, fieldKeys)
@@ -159,7 +159,7 @@ func Run() {
 		httptransport.ServerBefore(middleware.RequestLogging(logger, cfg.Mode)),
 		httptransport.ServerAfter(middleware.SetRequestID),
 		httptransport.ServerErrorHandler(transport.NewLogErrorHandler(logger)),
-		httptransport.ServerErrorEncoder(middleware.MyErrorEncoder(
+		httptransport.ServerErrorEncoder(middleware.ErrorEncoder(
 			middleware.SetRequestID, httptransport.DefaultErrorEncoder,
 		)),
 	)

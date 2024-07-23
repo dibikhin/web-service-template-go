@@ -17,5 +17,5 @@ func NewRandIDGenerator() IDGenerator {
 }
 
 func (g *randIDGenerator) NewID() string {
-	return strconv.Itoa(int(rand.Uint64()))
+	return strconv.FormatUint(rand.Uint64(), 10)
 }

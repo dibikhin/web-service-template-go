@@ -10,8 +10,13 @@ import (
 	"github.com/go-kit/kit/endpoint"
 	httptransport "github.com/go-kit/kit/transport/http"
 	"github.com/go-kit/log"
+	"github.com/go-playground/validator/v10"
 
 	"ws-dummy-go/internal/dummy"
+)
+
+var (
+	validate = validator.New(validator.WithRequiredStructEnabled())
 )
 
 type (
@@ -19,7 +24,7 @@ type (
 )
 
 type createUserRequest struct {
-	Name string `json:"name"`
+	Name string `json:"name" validate:"required"`
 }
 
 type createUserResponse struct {
@@ -65,6 +70,9 @@ func DecodeCreateUserRequest(_ context.Context, req *http.Request) (interface{},
 		// TODO: log error
 		return nil, NewValidationError("cannot decode request")
 	}
+	if err := validate.Struct(request); err != nil {
+		return nil, NewValidationError(err.Error())
+	}
 	return request, nil
 }
 
@@ -72,7 +80,7 @@ func MakeCreateUserEndpoint(svc dummy.UserService) endpoint.Endpoint {
 	return func(ctx context.Context, req interface{}) (interface{}, error) {
 		request, ok := req.(createUserRequest)
 		if !ok {
-			return createUserResponse{}, nil // todord 500
+			return createUserResponse{}, nil // TODO: 500
 		}
 		id, err := svc.CreateUser(ctx, request.Name)
 		if err != nil {
@@ -86,11 +94,11 @@ func MakeCreateUserEndpoint(svc dummy.UserService) endpoint.Endpoint {
 	}
 }
 
-func MyErrorEncoder(
-	rf httptransport.ServerResponseFunc, ee httptransport.ErrorEncoder,
+func ErrorEncoder(
+	srf httptransport.ServerResponseFunc, ee httptransport.ErrorEncoder,
 ) httptransport.ErrorEncoder {
 	return func(ctx context.Context, err error, w http.ResponseWriter) {
-		rf(ctx, w)
+		srf(ctx, w)
 		ee(ctx, err, w)
 	}
 }

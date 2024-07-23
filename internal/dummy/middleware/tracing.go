@@ -1,4 +1,3 @@
-// todord tracing
 package middleware
 
 import (

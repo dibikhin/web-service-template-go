@@ -38,8 +38,7 @@ func Test_usersSQLRepo_Insert(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// todord
-			// t.Parallel()
+			// TODO: t.Parallel()
 			assert := assert.New(t)
 
 			got, err := r.Insert(context.Background(), tt.args.name)
