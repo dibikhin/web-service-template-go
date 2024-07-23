@@ -34,7 +34,7 @@ tasks:
       - go fmt ./...
   test:
     cmds:
-      - go test ./... -v -race -timeout 30s
+      - go test -v -coverpkg=./internal/dummy ./internal/dummy -race -timeout 30s
   dead:
     cmds:
      - deadcode ./...
