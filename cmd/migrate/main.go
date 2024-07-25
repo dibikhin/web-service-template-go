@@ -31,12 +31,24 @@ func main() {
 	logger.Log("msg", "config loaded")
 
 	pgURL := composePostgresURL(cfg.Postgres)
-	mg, err := migrate.New("file://db/migrations", pgURL)
+	mig, err := migrate.New("file://migrations", pgURL)
 	if err != nil {
 		logger.Log("msg", "initializing migrations", "err", err)
 		return
 	}
-	if err := mg.Up(); err != nil {
+	defer func() {
+		if err1, err2 := mig.Close(); err != nil {
+			logger.Log("msg", "closing migrations", "err1", err1, "err2", err2)
+		}
+	}()
+	version, dirty, err := mig.Version()
+	if err != nil {
+		logger.Log("msg", "getting migrations version", "err", err)
+		return
+	}
+	logger.Log("msg", "migrations version", "version", version, "dirty", dirty)
+
+	if err := mig.Up(); err != nil {
 		logger.Log("msg", "running migrations up", "err", err)
 		return
 	}

@@ -1,4 +1,4 @@
-package dummy
+package domain
 
 type NotFoundError struct {
 	Message string

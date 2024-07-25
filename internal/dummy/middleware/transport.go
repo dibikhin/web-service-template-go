@@ -3,20 +3,12 @@ package middleware
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"runtime/debug"
 
 	"github.com/go-kit/kit/endpoint"
 	httptransport "github.com/go-kit/kit/transport/http"
 	"github.com/go-kit/log"
-	"github.com/go-playground/validator/v10"
-
-	"ws-dummy-go/internal/dummy"
-)
-
-var (
-	validate = validator.New(validator.WithRequiredStructEnabled())
 )
 
 type (
@@ -70,35 +62,12 @@ func DecodeCreateUserRequest(_ context.Context, req *http.Request) (interface{},
 		// TODO: log error
 		return nil, NewValidationError("cannot decode request")
 	}
-	if err := validate.Struct(request); err != nil {
-		return nil, NewValidationError(err.Error())
-	}
 	return request, nil
 }
 
-func MakeCreateUserEndpoint(svc dummy.UserService) endpoint.Endpoint {
-	return func(ctx context.Context, req interface{}) (interface{}, error) {
-		request, ok := req.(createUserRequest)
-		if !ok {
-			return createUserResponse{}, nil // TODO: 500
-		}
-		id, err := svc.CreateUser(ctx, request.Name)
-		if err != nil {
-			var e *dummy.NotFoundError
-			if errors.As(err, &e) {
-				return nil, NewNotFoundError(e.Error())
-			}
-			return nil, NewInternalServerError()
-		}
-		return createUserResponse{UserID: string(id)}, nil
-	}
-}
-
-func ErrorEncoder(
-	srf httptransport.ServerResponseFunc, ee httptransport.ErrorEncoder,
-) httptransport.ErrorEncoder {
+func ErrorEncoder() httptransport.ErrorEncoder {
 	return func(ctx context.Context, err error, w http.ResponseWriter) {
-		srf(ctx, w)
-		ee(ctx, err, w)
+		SetRequestID(ctx, w)
+		httptransport.DefaultErrorEncoder(ctx, err, w)
 	}
 }

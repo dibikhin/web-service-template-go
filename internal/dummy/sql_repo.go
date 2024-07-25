@@ -57,7 +57,7 @@ func (r usersSQLRepo) Insert(ctx context.Context, name string) (domain.UserID, e
 	var res string
 	if err := r.pool.QueryRow(ctx, sql2).Scan(&res); err != nil {
 		if err == pgx.ErrNoRows {
-			return "", NewNotFoundError("user not found")
+			return "", domain.NewNotFoundError("user not found")
 		}
 		return "", fmt.Errorf("executing query: %w", err)
 	}

@@ -159,9 +159,7 @@ func Run() {
 		httptransport.ServerBefore(middleware.RequestLogging(logger, cfg.Mode)),
 		httptransport.ServerAfter(middleware.SetRequestID),
 		httptransport.ServerErrorHandler(transport.NewLogErrorHandler(logger)),
-		httptransport.ServerErrorEncoder(middleware.ErrorEncoder(
-			middleware.SetRequestID, httptransport.DefaultErrorEncoder,
-		)),
+		httptransport.ServerErrorEncoder(middleware.ErrorEncoder()),
 	)
 
 	server := &http.Server{

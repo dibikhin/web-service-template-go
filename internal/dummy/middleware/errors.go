@@ -70,6 +70,8 @@ func (e *NotFoundError) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// 500 Internal Server Error
+
 type InternalServerError struct{}
 
 func NewInternalServerError() error {
@@ -88,6 +90,31 @@ func (e *InternalServerError) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&ErrorResponse{
 		Error: APIError{
 			Code:    60901,
+			Message: e.Error(),
+		},
+	})
+}
+
+// 501 Not Implemented
+
+type NotImplementedError struct{}
+
+func NewNotImplementedError() error {
+	return &NotImplementedError{}
+}
+
+func (*NotImplementedError) Error() string {
+	return "not implemented"
+}
+
+func (NotImplementedError) StatusCode() int {
+	return http.StatusNotImplemented
+}
+
+func (e *NotImplementedError) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&ErrorResponse{
+		Error: APIError{
+			Code:    60902,
 			Message: e.Error(),
 		},
 	})

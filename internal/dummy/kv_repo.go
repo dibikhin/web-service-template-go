@@ -34,7 +34,7 @@ func (r usersKVRepo) Set(ctx context.Context, name string) (domain.UserID, error
 	id, err := r.client.Get(ctx, name).Result()
 	if err != nil {
 		if err == redis.Nil {
-			return "", NewNotFoundError("user not found")
+			return "", domain.NewNotFoundError("user not found")
 		}
 		return "", fmt.Errorf("getting key: %w", err)
 	}

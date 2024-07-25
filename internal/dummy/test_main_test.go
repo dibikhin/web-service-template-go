@@ -168,7 +168,7 @@ func TestMain(m *testing.M) {
 	}()
 
 	// Migrate
-	mg, err := migrate.New("file://../../db/migrations", pgURL)
+	mg, err := migrate.New("file://../../migrations", pgURL)
 	if err != nil {
 		logger.Log("msg", "initializing migrations", "err", err)
 		return

@@ -4,7 +4,7 @@ Web Service Template in Go
 curl -v localhost:8080/createUser \
     -d '{"name":"juwis"}' \
     -H "Content-Type: application/json" \
-    -H "X-Request-ID: d3s32a1a1a" 
+    -H "X-Request-ID: a1b2c3d4e3f2g1" 
 
 Features:
 - Go kit chassis
@@ -17,7 +17,7 @@ Features:
 - Data layer tests
 - Mocks
 - Rich Taskfile
-- Graciful shutdown
+- Graceful shutdown
 
 golang-ci
 Kafka
