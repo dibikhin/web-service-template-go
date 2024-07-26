@@ -1,0 +1,5 @@
+all: true
+case: underscore
+dir: "./internal/dummy"
+output: "./internal/mocks"
+with-expecter: true

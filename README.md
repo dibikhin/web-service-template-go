@@ -1,2 +1,26 @@
-# web-service-template-go
+# ws-dummy-go
 Web Service Template in Go
+
+## Features
+- Go kit chassis
+- Dockerized app and infrastructure
+- Postgres, MongoDB, Redis
+- Config files
+- SQL builder
+- DB migrator
+- Data layer tests
+- Mocks
+- Rich Taskfile
+- Request validation
+- Graceful shutdown
+
+## Run
+
+`task run`
+
+## cURL
+
+`curl -v localhost:8080/createUser \
+    -d '{"name":"juwis"}' \
+    -H "Content-Type: application/json" \
+    -H "X-Request-ID: a1b2c3d4e3f2g1"`
