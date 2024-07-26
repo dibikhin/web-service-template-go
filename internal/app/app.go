@@ -181,7 +181,7 @@ func Run() {
 				logger.Log("err", err)
 			}
 		}
-		sigs <- syscall.SIGUSR1 // Just reusing the channel
+		sigs <- syscall.SIGUSR1 // Reusing the channel
 	}()
 
 	s := <-sigs
