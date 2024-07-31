@@ -79,6 +79,54 @@ func (_c *UsersDocsRepo_Insert_Call) RunAndReturn(run func(context.Context, stri
 	return _c
 }
 
+// Update provides a mock function with given fields: ctx, id, name
+func (_m *UsersDocsRepo) Update(ctx context.Context, id domain.UserID, name string) error {
+	ret := _m.Called(ctx, id, name)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Update")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, domain.UserID, string) error); ok {
+		r0 = rf(ctx, id, name)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// UsersDocsRepo_Update_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Update'
+type UsersDocsRepo_Update_Call struct {
+	*mock.Call
+}
+
+// Update is a helper method to define mock.On call
+//   - ctx context.Context
+//   - id domain.UserID
+//   - name string
+func (_e *UsersDocsRepo_Expecter) Update(ctx interface{}, id interface{}, name interface{}) *UsersDocsRepo_Update_Call {
+	return &UsersDocsRepo_Update_Call{Call: _e.mock.On("Update", ctx, id, name)}
+}
+
+func (_c *UsersDocsRepo_Update_Call) Run(run func(ctx context.Context, id domain.UserID, name string)) *UsersDocsRepo_Update_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(domain.UserID), args[2].(string))
+	})
+	return _c
+}
+
+func (_c *UsersDocsRepo_Update_Call) Return(_a0 error) *UsersDocsRepo_Update_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *UsersDocsRepo_Update_Call) RunAndReturn(run func(context.Context, domain.UserID, string) error) *UsersDocsRepo_Update_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // NewUsersDocsRepo creates a new instance of UsersDocsRepo. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewUsersDocsRepo(t interface {

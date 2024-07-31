@@ -34,3 +34,13 @@ func (mw instrmw) CreateUser(ctx context.Context, name string) (domain.UserID, e
 
 	return mw.UserService.CreateUser(ctx, name)
 }
+
+func (mw instrmw) UpdateUser(ctx context.Context, id domain.UserID, name string) error {
+	defer func(begin time.Time) {
+		lvs := []string{"method", "UpdateUser", "error", "false"}
+		mw.requestCount.With(lvs...).Add(1)
+		mw.requestLatency.With(lvs...).Observe(time.Since(begin).Seconds())
+	}(time.Now())
+
+	return mw.UserService.UpdateUser(ctx, id, name)
+}

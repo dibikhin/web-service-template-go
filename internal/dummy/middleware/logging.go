@@ -24,18 +24,33 @@ type logmw struct {
 	dummy.UserService
 }
 
-func (mw logmw) CreateUser(ctx context.Context, name string) (output domain.UserID, err error) {
+func (mw logmw) CreateUser(ctx context.Context, name string) (id domain.UserID, err error) {
 	defer func(begin time.Time) {
 		mw.logger.Log(
 			"method", "CreateUser",
-			"input", name,
-			"output", output,
+			"name", name,
+			"id", id,
 			"err", err,
 			"took", time.Since(begin),
 		)
 	}(time.Now())
 
-	output, err = mw.UserService.CreateUser(ctx, name)
+	id, err = mw.UserService.CreateUser(ctx, name)
+	return
+}
+
+func (mw logmw) UpdateUser(ctx context.Context, id domain.UserID, name string) (err error) {
+	defer func(begin time.Time) {
+		mw.logger.Log(
+			"method", "UpdateUser",
+			"id", id,
+			"name", name,
+			"err", err,
+			"took", time.Since(begin),
+		)
+	}(time.Now())
+
+	err = mw.UserService.UpdateUser(ctx, id, name)
 	return
 }
 

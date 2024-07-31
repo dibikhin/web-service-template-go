@@ -17,6 +17,7 @@ var db = goqu.Dialect("postgres")
 
 type UsersSQLRepo interface {
 	Insert(ctx context.Context, name string) (domain.UserID, error)
+	Update(ctx context.Context, id domain.UserID, name string) error
 }
 
 func NewUsersSQLRepo(p *pgxpool.Pool) UsersSQLRepo {
@@ -37,7 +38,7 @@ func (r usersSQLRepo) Insert(ctx context.Context, name string) (domain.UserID, e
 
 	sql1, params, err := q1.ToSQL()
 	if err != nil {
-		return "", fmt.Errorf("creating query: %w", err)
+		return "", fmt.Errorf("building query: %w", err)
 	}
 	_, err = r.pool.Exec(ctx, sql1, params...)
 	if err != nil {
@@ -52,7 +53,7 @@ func (r usersSQLRepo) Insert(ctx context.Context, name string) (domain.UserID, e
 
 	sql2, _, err := q2.ToSQL()
 	if err != nil {
-		return "", fmt.Errorf("creating query: %w", err)
+		return "", fmt.Errorf("building query: %w", err)
 	}
 	var res string
 	if err := r.pool.QueryRow(ctx, sql2).Scan(&res); err != nil {
@@ -62,4 +63,21 @@ func (r usersSQLRepo) Insert(ctx context.Context, name string) (domain.UserID, e
 		return "", fmt.Errorf("executing query: %w", err)
 	}
 	return domain.UserID(res), nil
+}
+
+func (r usersSQLRepo) Update(ctx context.Context, id domain.UserID, name string) error {
+	q := db.
+		Update("users").
+		Set(goqu.Record{"name": name}).
+		Where(goqu.C("user_id").Eq(id))
+
+	sql, _, err := q.ToSQL()
+	if err != nil {
+		return fmt.Errorf("building query: %w", err)
+	}
+	_, err = r.pool.Exec(ctx, sql)
+	if err != nil {
+		return fmt.Errorf("executing query: %w", err)
+	}
+	return nil
 }

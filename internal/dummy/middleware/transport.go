@@ -19,8 +19,16 @@ type createUserRequest struct {
 	Name string `json:"name" validate:"required"`
 }
 
+type updateUserRequest struct {
+	UserID string `json:"userId" validate:"required"`
+	Name   string `json:"name" validate:"required"`
+}
+
 type createUserResponse struct {
 	UserID string `json:"userId"`
+}
+
+type updateUserResponse struct {
 }
 
 func Recovery(logger log.Logger) endpoint.Middleware {
@@ -58,6 +66,18 @@ func DecodeCreateUserRequest(_ context.Context, req *http.Request) (interface{},
 		return nil, NewValidationError("empty request")
 	}
 	var request createUserRequest
+	if err := json.NewDecoder(req.Body).Decode(&request); err != nil {
+		// TODO: log error
+		return nil, NewValidationError("cannot decode request")
+	}
+	return request, nil
+}
+
+func DecodeUpdateUserRequest(_ context.Context, req *http.Request) (interface{}, error) {
+	if req.ContentLength == 0 {
+		return nil, NewValidationError("empty request")
+	}
+	var request updateUserRequest
 	if err := json.NewDecoder(req.Body).Decode(&request); err != nil {
 		// TODO: log error
 		return nil, NewValidationError("cannot decode request")

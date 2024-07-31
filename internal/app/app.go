@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"errors"
 	"flag"
 	"fmt"
 	"net/http"
@@ -162,10 +161,27 @@ func Run() {
 		httptransport.ServerErrorEncoder(middleware.ErrorEncoder()),
 	)
 
+	updateUserHandler := httptransport.NewServer(
+		middleware.Recovery(logger)(
+			middleware.MakeUpdateUserEndpoint(svc),
+		),
+		middleware.DecodingRecovery(logger)(
+			middleware.DecodeUpdateUserRequest,
+		),
+		httptransport.EncodeJSONResponse,
+		httptransport.ServerBefore(middleware.RequestID),
+		httptransport.ServerBefore(middleware.RequestLogging(logger, cfg.Mode)),
+		httptransport.ServerAfter(middleware.SetRequestID),
+		httptransport.ServerErrorHandler(transport.NewLogErrorHandler(logger)),
+		httptransport.ServerErrorEncoder(middleware.ErrorEncoder()),
+	)
+
 	server := &http.Server{
 		Addr: cfg.Port,
 	}
 	http.Handle("/createUser", createUserHandler)
+	http.Handle("/updateUser", updateUserHandler)
+
 	http.Handle("/metrics", promhttp.Handler())
 
 	sigs := make(chan os.Signal, 1)
@@ -175,12 +191,10 @@ func Run() {
 		logger.Log("msg", "HTTP", "addr", cfg.Port)
 
 		if err := server.ListenAndServe(); err != nil {
-			if errors.Is(err, http.ErrServerClosed) {
-				logger.Log("msg", "server closed")
-			} else {
-				logger.Log("err", err)
-			}
+			logger.Log("err", err)
 		}
+		logger.Log("msg", "server cleaning up...")
+
 		sigs <- syscall.SIGUSR1 // Reusing the channel
 	}()
 

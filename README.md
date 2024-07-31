@@ -20,7 +20,14 @@ Web Service Template in Go
 
 ## cURL
 
-`curl -v localhost:8080/createUser \
+```
+curl -v localhost:8080/createUser \
     -d '{"name":"juwis"}' \
     -H "Content-Type: application/json" \
-    -H "X-Request-ID: a1b2c3d4e3f2g1"`
+    -H "X-Request-ID: a1b2c3d4e3f2g1"
+
+curl -v localhost:8080/updateUser \
+    -d '{"userId":"5718336260054177893","name":"jella"}' \
+    -H "Content-Type: application/json" \
+    -H "X-Request-ID: a1b2c3d4e3f2g1"
+```

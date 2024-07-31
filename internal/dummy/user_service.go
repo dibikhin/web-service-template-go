@@ -10,6 +10,7 @@ import (
 // UserService provides operations on dummys.
 type UserService interface {
 	CreateUser(ctx context.Context, name string) (domain.UserID, error)
+	UpdateUser(ctx context.Context, id domain.UserID, name string) error
 }
 
 func NewUserService(kv UsersKVRepo, sql UsersSQLRepo, docs UsersDocsRepo) UserService {
@@ -36,4 +37,17 @@ func (s userService) CreateUser(ctx context.Context, name string) (domain.UserID
 		return "", fmt.Errorf("inserting user in docs repo: %w", err)
 	}
 	return domain.UserID(fmt.Sprintf("%s-%s-%s", id1, id2, id3)), nil
+}
+
+func (s userService) UpdateUser(ctx context.Context, id domain.UserID, name string) error {
+	if err := s.sqlRepo.Update(ctx, id, name); err != nil {
+		return fmt.Errorf("updating user in sql repo: %w", err)
+	}
+	if err := s.kvRepo.Update(ctx, id, name); err != nil {
+		return fmt.Errorf("updating user in kv repo: %w", err)
+	}
+	if err := s.docsRepo.Update(ctx, id, name); err != nil {
+		return fmt.Errorf("updating user in docs repo: %w", err)
+	}
+	return nil
 }

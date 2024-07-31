@@ -11,6 +11,7 @@ import (
 
 type UsersKVRepo interface {
 	Set(ctx context.Context, name string) (domain.UserID, error)
+	Update(ctx context.Context, id domain.UserID, name string) error
 }
 
 func NewUsersKVRepo(c *redis.Client, g IDGenerator) UsersKVRepo {
@@ -39,4 +40,11 @@ func (r usersKVRepo) Set(ctx context.Context, name string) (domain.UserID, error
 		return "", fmt.Errorf("getting key: %w", err)
 	}
 	return domain.UserID(id), nil
+}
+
+func (r usersKVRepo) Update(ctx context.Context, id domain.UserID, name string) error {
+	if err := r.client.Set(ctx, name, string(id), 0).Err(); err != nil {
+		return fmt.Errorf("setting key: %w", err)
+	}
+	return nil
 }

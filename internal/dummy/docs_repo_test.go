@@ -45,7 +45,7 @@ func Test_usersDocRepo_Insert(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// TODO: t.Parallel()
+			t.Parallel()
 			assert := assert.New(t)
 
 			got, err := r.Insert(context.Background(), tt.args.name)
