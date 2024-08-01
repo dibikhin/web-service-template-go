@@ -3,7 +3,7 @@ package app
 import (
 	"context"
 	"flag"
-	"fmt"
+
 	"net/http"
 	"os"
 	"os/signal"
@@ -13,12 +13,9 @@ import (
 	"github.com/go-kit/kit/transport"
 	httptransport "github.com/go-kit/kit/transport/http"
 	"github.com/go-kit/log"
-	"github.com/jackc/pgx/v5/pgxpool"
+
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/redis/go-redis/v9"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"ws-dummy-go/internal/dummy"
 	"ws-dummy-go/internal/dummy/middleware"
@@ -64,77 +61,25 @@ func Run() {
 
 	var svc dummy.UserService
 	{
-		// Postgres
-		pgPool, err := pgxpool.New(context.Background(), composePostgresURL(cfg.Postgres))
-		if err != nil {
-			logger.Log("msg", "connecting to postgres", "err", err)
+		pgPool, ok, teardownPG := connectPostgres(logger, cfg.Postgres)
+		if !ok {
 			return
 		}
-		if err := pgPool.Ping(context.Background()); err != nil {
-			logger.Log("msg", "pinging postgres", "err", err)
+		defer teardownPG()
+
+		redisClient, ok, teardownRedis := connectRedis(logger, cfg.Redis)
+		if !ok {
 			return
 		}
-		s := pgPool.Stat()
-		logger.Log("msg", "postgres pool connected", "total", s.TotalConns(), "max", s.MaxConns())
+		defer teardownRedis()
 
-		defer func() {
-			pgPool.Close()
-			logger.Log("msg", "postgres pool closed")
-		}()
-
-		// Redis
-		redisAddr := fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port)
-		redisClient := redis.NewClient(&redis.Options{
-			Addr:         redisAddr,
-			Password:     cfg.Redis.Password,
-			DB:           0,
-			DialTimeout:  cfg.Redis.Timeout,
-			ReadTimeout:  0, // 0 = 3s
-			WriteTimeout: 0, // 0 = 3s
-		})
-		if err := redisClient.Ping(context.Background()).Err(); err != nil {
-			logger.Log("msg", "pinging redis", "err", err)
+		mongoClient, ok, teardownMongo := connectMongo(logger, cfg.Mongo)
+		if !ok {
 			return
 		}
-		logger.Log("msg", "redis connected")
-
-		defer func() {
-			if err := redisClient.Close(); err != nil {
-				logger.Log("msg", "closing redis client", "err", err)
-				return
-			}
-			logger.Log("msg", "redis client closed")
-		}()
-
-		// Mongo
-		mongoURI := fmt.Sprintf("mongodb://%s:%s@%s:%d/%s",
-			cfg.Mongo.Username, cfg.Mongo.Password, cfg.Mongo.Host, cfg.Mongo.Port, cfg.Mongo.Database,
-		)
-		mongoClient, err := mongo.Connect(context.Background(), options.Client().
-			ApplyURI(mongoURI).
-			SetConnectTimeout(cfg.Mongo.Timeout).
-			SetServerSelectionTimeout(cfg.Mongo.Timeout).
-			SetTimeout(cfg.Mongo.Timeout))
-		if err != nil {
-			logger.Log("msg", "connecting to mongodb", "err", err)
-			return
-		}
-		if err := mongoClient.Ping(context.Background(), nil); err != nil {
-			logger.Log("msg", "pinging mongodb", "err", err)
-			return
-		}
-		logger.Log("msg", "mongodb connected")
-
-		defer func() {
-			if err := mongoClient.Disconnect(context.Background()); err != nil {
-				logger.Log("msg", "disconnecting from mongodb", "err", err)
-				return
-			}
-			logger.Log("msg", "mongodb client disconnected")
-		}()
+		defer teardownMongo()
 
 		dummyCollection := mongoClient.Database(cfg.Mongo.Database).Collection("users")
-
 		// Repos
 		docsRepo := dummy.NewUsersDocsRepo(dummyCollection, dummy.NewRandIDGenerator())
 		kvRepo := dummy.NewUsersKVRepo(redisClient, dummy.NewRandIDGenerator())
@@ -151,7 +96,7 @@ func Run() {
 			middleware.MakeCreateUserEndpoint(svc),
 		),
 		middleware.DecodingRecovery(logger)(
-			middleware.DecodeCreateUserRequest,
+			middleware.MakeDecodeCreateUserRequest(logger),
 		),
 		httptransport.EncodeJSONResponse,
 		httptransport.ServerBefore(middleware.RequestID),
@@ -166,7 +111,7 @@ func Run() {
 			middleware.MakeUpdateUserEndpoint(svc),
 		),
 		middleware.DecodingRecovery(logger)(
-			middleware.DecodeUpdateUserRequest,
+			middleware.MakeDecodeUpdateUserRequest(logger),
 		),
 		httptransport.EncodeJSONResponse,
 		httptransport.ServerBefore(middleware.RequestID),
@@ -176,14 +121,14 @@ func Run() {
 		httptransport.ServerErrorEncoder(middleware.ErrorEncoder()),
 	)
 
-	server := &http.Server{
-		Addr: cfg.Port,
-	}
 	http.Handle("/createUser", createUserHandler)
 	http.Handle("/updateUser", updateUserHandler)
 
 	http.Handle("/metrics", promhttp.Handler())
 
+	server := &http.Server{
+		Addr: cfg.Port,
+	}
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
@@ -191,7 +136,7 @@ func Run() {
 		logger.Log("msg", "HTTP", "addr", cfg.Port)
 
 		if err := server.ListenAndServe(); err != nil {
-			logger.Log("err", err)
+			logger.Log("msg", "listening", "err", err)
 		}
 		logger.Log("msg", "server cleaning up...")
 
@@ -199,18 +144,11 @@ func Run() {
 	}()
 
 	s := <-sigs
-	logger.Log("msg", "got signal", "signal", s)
+	logger.Log("msg", "got signal", "sig", s)
 
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.Timeout)
 	defer cancel()
 	if err := server.Shutdown(ctx); err != nil {
 		logger.Log("msg", "server shutting down", "err", err)
 	}
-}
-
-func composePostgresURL(cfg PostgresConfig) string {
-	return fmt.Sprintf(
-		"postgres://%s:%s@%s:%d/%s?connect_timeout=%d&pool_max_conns=%d&application_name=%s&sslmode=disable",
-		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.Database, cfg.Timeout, poolMaxConns, appName,
-	)
 }

@@ -61,28 +61,32 @@ func DecodingRecovery(logger log.Logger) DecodingMiddleware {
 	}
 }
 
-func DecodeCreateUserRequest(_ context.Context, req *http.Request) (interface{}, error) {
-	if req.ContentLength == 0 {
-		return nil, NewValidationError("empty request")
+func MakeDecodeCreateUserRequest(logger log.Logger) httptransport.DecodeRequestFunc {
+	return func(_ context.Context, req *http.Request) (interface{}, error) {
+		if req.ContentLength == 0 {
+			return nil, NewValidationError("empty request")
+		}
+		var request createUserRequest
+		if err := json.NewDecoder(req.Body).Decode(&request); err != nil {
+			logger.Log("msg", "decoding request", "err", err)
+			return nil, NewValidationError("cannot decode request")
+		}
+		return request, nil
 	}
-	var request createUserRequest
-	if err := json.NewDecoder(req.Body).Decode(&request); err != nil {
-		// TODO: log error
-		return nil, NewValidationError("cannot decode request")
-	}
-	return request, nil
 }
 
-func DecodeUpdateUserRequest(_ context.Context, req *http.Request) (interface{}, error) {
-	if req.ContentLength == 0 {
-		return nil, NewValidationError("empty request")
+func MakeDecodeUpdateUserRequest(logger log.Logger) httptransport.DecodeRequestFunc {
+	return func(_ context.Context, req *http.Request) (interface{}, error) {
+		if req.ContentLength == 0 {
+			return nil, NewValidationError("empty request")
+		}
+		var request updateUserRequest
+		if err := json.NewDecoder(req.Body).Decode(&request); err != nil {
+			logger.Log("msg", "decoding request", "err", err)
+			return nil, NewValidationError("cannot decode request")
+		}
+		return request, nil
 	}
-	var request updateUserRequest
-	if err := json.NewDecoder(req.Body).Decode(&request); err != nil {
-		// TODO: log error
-		return nil, NewValidationError("cannot decode request")
-	}
-	return request, nil
 }
 
 func ErrorEncoder() httptransport.ErrorEncoder {
