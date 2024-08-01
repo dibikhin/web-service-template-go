@@ -55,3 +55,36 @@ func Test_usersKVRepo_Set(t *testing.T) {
 		})
 	}
 }
+
+func Test_usersKVRepo_Update(t *testing.T) {
+	type args struct {
+		id   domain.UserID
+		name string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name:    "Positive: Update user",
+			args:    args{id: domain.UserID("1"), name: "testname123"},
+			wantErr: false,
+		},
+	}
+
+	r := usersKVRepo{
+		client: testRedisClient,
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert := assert.New(t)
+
+			err := r.Update(context.Background(), tt.args.id, tt.args.name)
+
+			assert.Equal(tt.wantErr, err != nil, err)
+		})
+	}
+}
